@@ -4,4 +4,5 @@ developing
 
 基于renpy
 
-MIT 
+MIT license
+
