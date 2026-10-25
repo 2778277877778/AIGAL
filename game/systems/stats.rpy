@@ -27,7 +27,7 @@ init -1 python:
     ## 结局门槛（回合事件表 §7）
     END_STUDY = 75
     END_STRESS = 70
-    TRUE_FLAGS = ("found_garden", "art_fair", "club", "botanical", "subject_support")
+    TRUE_FLAGS = ("found_garden", "art_fair", "club", "botanical", "subject_support", "same_subject")
 
     ## 行动表（回合事件表 §3）。study/stress/stamina 是纯增量，money 是花费。
     ## ap = 0 表示不消耗行动点。
@@ -109,7 +109,7 @@ init -1 python:
         return bool(store.flags.get(name))
 
     def true_ending():
-        """TRUE「花开的时候」：学习 ≥75、压力 ≤70、五个 Flag 全触发（不看好感）。"""
+        """TRUE「花开的时候」：学习 ≥75、压力 ≤70、六个 Flag 全触发（不看好感）。"""
         return store.study >= END_STUDY and store.stress <= END_STRESS and all(has_flag(f) for f in TRUE_FLAGS)
 
 
