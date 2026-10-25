@@ -112,6 +112,14 @@ init -1 python:
         """TRUE「花开的时候」：学习 ≥75、压力 ≤70、六个 Flag 全触发（不看好感）。"""
         return store.study >= END_STUDY and store.stress <= END_STRESS and all(has_flag(f) for f in TRUE_FLAGS)
 
+    def end_variant():
+        """END「花期未至」的正文变体（回合事件表 §7.1）：A 表被改回 / B 没跟着填 / C 花没开成。"""
+        if not has_flag("subject_support"):
+            return "A"
+        if not has_flag("same_subject"):
+            return "B"
+        return "C"
+
 
 ## 存档状态 ####################################################################
 
