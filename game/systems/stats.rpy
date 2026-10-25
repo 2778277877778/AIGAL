@@ -46,6 +46,28 @@ init -1 python:
         "club":        dict(label="去音乐社",       ap=1, stress=-6),   # 艺术楼，T6 后
     }
 
+    ## 地图节点（回合事件表 §4）。key 由 campus_map 和剧情共用，label 是界面上的字，
+    ## unlock 是解锁回合号（T 几）。节点常驻的人写在文档里，不进代码。
+    NODES = {
+        "dorm":         dict(label="宿舍",     unlock=1),
+        "classroom":    dict(label="教室",     unlock=1),
+        "library":      dict(label="图书馆",   unlock=1),
+        "canteen":      dict(label="食堂",     unlock=1),
+        "shop":         dict(label="小卖部",   unlock=1),
+        "field":        dict(label="操场",     unlock=1),
+        "art_building": dict(label="艺术楼",   unlock=2),
+        "piano_room":   dict(label="旧琴房",   unlock=3),
+        "auditorium":   dict(label="礼堂",     unlock=5),
+        "music_room":   dict(label="音乐教室", unlock=6),
+    }
+
+    def unlocked_nodes():
+        """当前回合能点的节点 key 列表，按 NODES 里的顺序。"""
+        return [k for k, v in NODES.items() if store.turn >= v["unlock"]]
+
+    def node_label(key):
+        return NODES[key]["label"]
+
     def clamp(value, low=0, high=100):
         return max(low, min(high, value))
 
