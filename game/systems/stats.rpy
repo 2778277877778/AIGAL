@@ -21,8 +21,8 @@ init -1 python:
     STRESS_SICK = 95            # ≥95 生病：少 1 AP
     STAMINA_LOW = 20            # <20 学习/小游戏收益减半
 
-    ## 考试线（回合事件表 §1）
-    EXAM_LINES = {"月考": 35, "期中": 50, "期末": 60, "学年期末": 70}
+    ## 考试线（回合事件表 §1）。key 一律英文，见变量命名规范 §3
+    EXAM_LINES = {"monthly": 35, "midterm": 50, "final": 60, "yearly": 70}
 
     ## 结局门槛（回合事件表 §7）
     END_STUDY = 75
@@ -32,18 +32,18 @@ init -1 python:
     ## 行动表（回合事件表 §3）。study/stress/stamina 是纯增量，money 是花费。
     ## ap = 0 表示不消耗行动点。key 同时是剧情里调 do_action() 时传的名字。
     ACTIONS = {
-        "class":       dict(label="去教室上课",     ap=1, study=5,  stress=8,  stamina=-7),
-        "ask_zhoumo":  dict(label="找周墨问题",     ap=1, stress=-2),
-        "study":       dict(label="去图书馆自习",   ap=1, study=5,  stress=8,  stamina=-7),
-        "study_with":  dict(label="和周墨一起自习", ap=1, study=4, stress=5),
-        "canteen":     dict(label="去食堂吃饭",     ap=1, stress=-4, stamina=3, money=12),
-        "shop":        dict(label="去小卖部",       ap=0),
-        "sport":       dict(label="打球/跑操",      ap=1, stress=-4, stamina=10),
-        "watch":       dict(label="看周子博打球",   ap=1, stress=-4),
-        "rest":        dict(label="回宿舍休息",     ap=1, stress=-10, stamina=8),
-        "piano":       dict(label="站在琴房外听",   ap=1, stress=-8),   # 旧琴房，T3–T4
-        "hall":        dict(label="去礼堂看琴",     ap=1, stress=-8),   # 礼堂，T5 后
-        "club":        dict(label="去音乐社",       ap=1, stress=-6),   # 艺术楼，T6 后
+        "attend_class":     dict(label="去教室上课",     ap=1, study=5,  stress=8,  stamina=-7),
+        "ask_zhoumo":       dict(label="找周墨问题",     ap=1, stress=-2),
+        "study":            dict(label="去图书馆自习",   ap=1, study=5,  stress=8,  stamina=-7),
+        "study_with":       dict(label="和周墨一起自习", ap=1, study=4, stress=5),
+        "eat_canteen":      dict(label="去食堂吃饭",     ap=1, stress=-4, stamina=3, money=12),
+        "buy_shop":         dict(label="去小卖部",       ap=0),
+        "do_sport":         dict(label="打球/跑操",      ap=1, stress=-4, stamina=10),
+        "watch_basketball": dict(label="看周子博打球",   ap=1, stress=-4),
+        "rest_dorm":        dict(label="回宿舍休息",     ap=1, stress=-10, stamina=8),
+        "listen_piano":     dict(label="站在琴房外听",   ap=1, stress=-8),   # 旧琴房，T3–T4
+        "visit_hall":       dict(label="去礼堂看琴",     ap=1, stress=-8),   # 礼堂，T5 后
+        "visit_club":       dict(label="去音乐社",       ap=1, stress=-6),   # 艺术楼，T6 后
     }
 
     ## 地图节点（回合事件表 §4）。key 由 campus_map 和剧情共用，label 是界面上的字，
@@ -57,7 +57,7 @@ init -1 python:
         "field":        dict(label="操场",     unlock=1),
         "art_building": dict(label="艺术楼",   unlock=2),
         "piano_room":   dict(label="旧琴房",   unlock=3),
-        "auditorium":   dict(label="礼堂",     unlock=5),
+        "hall":         dict(label="礼堂",     unlock=5),
         "music_room":   dict(label="音乐教室", unlock=6),
     }
 
@@ -118,12 +118,13 @@ init -1 python:
             ap -= 1                       # 生病：少 1 AP
         store.ap = max(0, ap)
 
-    def exam_roll(line_name):
-        """考试得分 = 学习 + 随机(−5, +5)。"""
+    def exam_roll():
+        """考试得分 = 学习 + 随机(−5, +5)。各条及格线都共用这一次掷点。"""
         return clamp(store.study + renpy.random.randint(-5, 5))
 
-    def exam_pass(line_name):
-        return exam_roll(line_name) >= EXAM_LINES[line_name]
+    def exam_pass(line_key):
+        """按 EXAM_LINES 的 key 查及格线：monthly 35 / midterm 50 / final 60 / yearly 70。"""
+        return exam_roll() >= EXAM_LINES[line_key]
 
     def set_flag(name):
         store.flags[name] = True
