@@ -1,4 +1,4 @@
-﻿################################################################################
+################################################################################
 ## Initialization
 ################################################################################
 
@@ -24,65 +24,69 @@ define config.check_conflicting_properties = True
 ##
 ## The colors of text in the interface.
 
-## An accent color used throughout the interface to label and highlight
-## text.
-define gui.accent_color = "#00b8c3"
+## 主题色：雨青（雾绿）。用在名字、选中项、进度条和强调文字上。
+define gui.accent_color = "#96c8b2"
 
 ## The color used for a text button when it is neither selected nor hovered.
-define gui.idle_color = "#888888"
+define gui.idle_color = "#8e9a93"
 
 ## The small color is used for small text, which needs to be
 ## brighter/darker to achieve the same effect.
-define gui.idle_small_color = "#aaaaaa"
+define gui.idle_small_color = "#a9b5ae"
 
 ## The color that is used for buttons and bars that are hovered.
 define gui.hover_color = Color(gui.accent_color).tint(.6)
 
 ## The color used for a text button when it is selected but not focused.
 ## A button is selected if it is the current screen or preference value.
-define gui.selected_color = "#ffffff"
+define gui.selected_color = "#f6f2e8"
 
 ## The color used for a text button when it cannot be selected.
-define gui.insensitive_color = "#55555580"
+define gui.insensitive_color = "#4e5a5499"
 
 ## Colors used for the portions of bars that are not filled in. These are
 ## not used directly, but are used when re-generating bar image files.
-define gui.muted_color = "#004e49"
-define gui.hover_muted_color = "#006e75"
+define gui.muted_color = "#22362f"
+define gui.hover_muted_color = "#2c463c"
 
 ## The colors used for dialogue and menu choice text.
-define gui.text_color = "#ffffff"
-define gui.interface_text_color = "#ffffff"
+define gui.text_color = "#f2eee3"
+define gui.interface_text_color = "#e7e2d6"
 
 
 ## Fonts and Font Sizes ########################################################
 
 ## The font used for in-game text.
-define gui.text_font = "fonts/SourceHanSansLite.ttf"
+## 正文用霞鹜文楷（LXGW WenKai）子集，见 fonts/OFL.txt。
+define gui.text_font = "fonts/WenKaiLite.ttf"
 
 ## The font used for character names.
-define gui.name_text_font = "fonts/SourceHanSansLite.ttf"
+define gui.name_text_font = "fonts/WenKaiLite.ttf"
 
 ## The font used for out-of-game text.
+## 界面小字用思源黑体，笔画更整齐。
 define gui.interface_text_font = "fonts/SourceHanSansLite.ttf"
 
+## 标题字体（主菜单标题、章节标题）。
+define gui.title_text_font = "fonts/WenKaiLite.ttf"
+
 ## The size of normal dialogue text.
-define gui.text_size = gui.scale(22)
+define gui.text_size = gui.scale(24)
 
 ## The size of character names.
-define gui.name_text_size = gui.scale(30)
+define gui.name_text_size = gui.scale(33)
 
 ## The size of text in the game's user interface.
 define gui.interface_text_size = gui.scale(22)
 
 ## The size of labels in the game's user interface.
-define gui.label_text_size = gui.scale(24)
+define gui.label_text_size = gui.scale(26)
 
 ## The size of text on the notify screen.
 define gui.notify_text_size = gui.scale(16)
 
 ## The size of the game's title.
-define gui.title_text_size = gui.scale(50)
+define gui.title_text_size = gui.scale(64)
 
 
 ## Main and Game Menus #########################################################
@@ -107,8 +111,8 @@ define gui.textbox_yalign = 1.0
 
 ## The placement of the speaking character's name, relative to the textbox.
 ## These can be a whole number of pixels from the left or top, or 0.5 to center.
-define gui.name_xpos = gui.scale(240)
-define gui.name_ypos = gui.scale(0)
+define gui.name_xpos = gui.scale(268)
+define gui.name_ypos = gui.scale(-26)
 
 ## The horizontal alignment of the character's name. This can be 0.0 for
 ## left-aligned, 0.5 for centered, and 1.0 for right-aligned.
@@ -121,7 +125,7 @@ define gui.namebox_height = None
 
 ## The borders of the box containing the character's name, in left, top,
 ## right, bottom order.
-define gui.namebox_borders = Borders(5, 5, 5, 5)
+define gui.namebox_borders = Borders(gui.scale(16), gui.scale(10), gui.scale(16), gui.scale(10))
 
 ## If True, the background of the namebox will be tiled, if False, the background
 ## of the namebox will be scaled.
@@ -132,7 +136,7 @@ define gui.namebox_tile = False
 ## number of pixels relative to the left or top side of the textbox, or 0.5
 ## to center.
 define gui.dialogue_xpos = gui.scale(268)
-define gui.dialogue_ypos = gui.scale(50)
+define gui.dialogue_ypos = gui.scale(43)
 
 ## The maximum width of dialogue text, in pixels.
 define gui.dialogue_width = gui.scale(744)
@@ -208,7 +212,7 @@ define gui.quick_button_text_selected_color = gui.accent_color
 define gui.choice_button_width = gui.scale(790)
 define gui.choice_button_height = None
 define gui.choice_button_tile = False
-define gui.choice_button_borders = Borders(gui.scale(100), gui.scale(5), gui.scale(100), gui.scale(5))
+define gui.choice_button_borders = Borders(gui.scale(24), gui.scale(14), gui.scale(24), gui.scale(14))
 define gui.choice_button_text_font = gui.text_font
 define gui.choice_button_text_size = gui.text_size
 define gui.choice_button_text_xalign = 0.5
@@ -261,7 +265,7 @@ define gui.notify_ypos = gui.scale(45)
 define gui.choice_spacing = gui.scale(22)
 
 ## Buttons in the navigation section of the main and game menus.
-define gui.navigation_spacing = gui.scale(4)
+define gui.navigation_spacing = gui.scale(10)
 
 ## Controls the amount of spacing between preferences.
 define gui.pref_spacing = gui.scale(10)

@@ -1,4 +1,4 @@
-﻿################################################################################
+################################################################################
 ## Initialization
 ################################################################################
 
@@ -371,6 +371,9 @@ screen main_menu():
 
             text "[config.name!t]":
                 style "main_menu_title"
+
+            ## 标题与版本号之间的一条雨青短线。
+            add Solid(gui.accent_color) xysize (gui.scale(104), gui.scale(2)) xalign 1.0
 
             text "[config.version]":
                 style "main_menu_version"
