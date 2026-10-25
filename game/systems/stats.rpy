@@ -1,7 +1,7 @@
 ## systems/stats.rpy
 ##
 ## 四数值 / 行动点 / Flag 的唯一入口。
-## 口径来源：《回合事件表_v2.2》§0 §3 §5 §7、《游戏设定总表_v2.4》§四。
+## 口径来源：《回合事件表_v3.0》§0 §3 §5 §7、《游戏设定总表_v2.5》§四。
 ##
 ## 规矩：剧情里不要写 `$ study += 5`，一律调用本文件的函数。
 ## 数值全部可调，改数字只改这里。
@@ -27,7 +27,7 @@ init -1 python:
     ## 结局门槛（回合事件表 §7）
     END_STUDY = 75
     END_STRESS = 70
-    TRUE_FLAGS = ("found_garden", "art_fair", "club", "botanical", "subject_support", "same_subject")
+    TRUE_FLAGS = ("found_piano_room", "art_fair", "club", "music_hall", "subject_support", "same_subject")
 
     ## 行动表（回合事件表 §3）。study/stress/stamina 是纯增量，money 是花费。
     ## ap = 0 表示不消耗行动点。
@@ -41,8 +41,8 @@ init -1 python:
         "sport":       dict(label="打球/跑操",    ap=1, stress=-4, stamina=10),
         "watch":       dict(label="看周子博打球", ap=1, stress=-4),
         "rest":        dict(label="回宿舍休息",   ap=1, stress=-10, stamina=8),
-        "garden":      dict(label="上天台看花",   ap=1, stress=-8),
-        "club":        dict(label="去花艺社",     ap=1, stress=-6),
+        "piano":       dict(label="站在琴房外听", ap=1, stress=-8),
+        "club":        dict(label="去音乐社",     ap=1, stress=-6),
     }
 
     def clamp(value, low=0, high=100):
@@ -109,11 +109,11 @@ init -1 python:
         return bool(store.flags.get(name))
 
     def true_ending():
-        """TRUE「花开的时候」：学习 ≥75、压力 ≤70、六个 Flag 全触发（不看好感）。"""
+        """TRUE「最后一个音」：学习 ≥75、压力 ≤70、六个 Flag 全触发（不看好感）。"""
         return store.study >= END_STUDY and store.stress <= END_STRESS and all(has_flag(f) for f in TRUE_FLAGS)
 
     def end_variant():
-        """END「花期未至」的正文变体（回合事件表 §7.1）：A 表被改回 / B 没跟着填 / C 花没开成。
+        """END「琴盖没开」的正文变体（回合事件表 §7.1）：A 表被改回 / B 没跟着填 / C 曲子弹断了。
 
         只该在 true_ending() 为假（走 END）时调用；TRUE 分支调它会拿到一个不属于结局的变体。
         本函数只决定取哪一版正文，正文以大纲 §5 为准。
