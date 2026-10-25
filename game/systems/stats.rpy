@@ -29,6 +29,14 @@ init -1 python:
     END_STRESS = 70
     TRUE_FLAGS = ("found_piano_room", "art_fair", "club", "music_hall", "subject_support", "same_subject")
 
+    ## 13 个 Flag 的唯一名单（回合事件表 §5）。set_flag 只认这些名字，
+    ## 拼错一个字母会当场抛异常，不会静默写进字典、让 TRUE 永远拿不到。
+    FLAG_NAMES = (
+        "met_zhoumo", "gave_candy", "heard_piano", "heard_call",
+        "found_piano_room", "art_fair", "sheet_music", "piano_crisis",
+        "club", "music_hall", "subject_support", "same_subject", "confession",
+    )
+
     ## 行动表（回合事件表 §3）。study/stress/stamina 是纯增量，money 是花费。
     ## ap = 0 表示不消耗行动点。key 同时是剧情里调 do_action() 时传的名字。
     ACTIONS = {
@@ -37,7 +45,7 @@ init -1 python:
         "study":            dict(label="去图书馆自习",   ap=1, study=5,  stress=8,  stamina=-7),
         "study_with":       dict(label="和周墨一起自习", ap=1, study=4, stress=5),
         "eat_canteen":      dict(label="去食堂吃饭",     ap=1, stress=-4, stamina=3, money=12),
-        "buy_shop":         dict(label="去小卖部",       ap=0),
+        "buy_shop":         dict(label="去小卖部",       ap=0),   # 只开商店界面，扣钱走 add_stat("money", -价)
         "do_sport":         dict(label="打球/跑操",      ap=1, stress=-4, stamina=10),
         "watch_basketball": dict(label="看周子博打球",   ap=1, stress=-4),
         "rest_dorm":        dict(label="回宿舍休息",     ap=1, stress=-10, stamina=8),
@@ -119,14 +127,23 @@ init -1 python:
         store.ap = max(0, ap)
 
     def exam_roll():
-        """考试得分 = 学习 + 随机(−5, +5)。各条及格线都共用这一次掷点。"""
-        return clamp(store.study + renpy.random.randint(-5, 5))
+        """掷一次：学习 + 随机(−5, +5)，存进 store.exam_score 并返回。
+
+        同一回合查多条及格线（月考/期中/期末）共用这一次掷点，不会各掷一个随机数。
+        """
+        store.exam_score = clamp(store.study + renpy.random.randint(-5, 5))
+        return store.exam_score
 
     def exam_pass(line_key):
-        """按 EXAM_LINES 的 key 查及格线：monthly 35 / midterm 50 / final 60 / yearly 70。"""
-        return exam_roll() >= EXAM_LINES[line_key]
+        """拿 store.exam_score 比 EXAM_LINES 的及格线，不重新掷。
+
+        key：monthly 35 / midterm 50 / final 60 / yearly 70。
+        """
+        return store.exam_score >= EXAM_LINES[line_key]
 
     def set_flag(name):
+        if name not in FLAG_NAMES:
+            raise Exception("未知 Flag：%s（名单见 FLAG_NAMES / 变量命名规范 §5）" % name)
         store.flags[name] = True
 
     def has_flag(name):
@@ -157,5 +174,6 @@ default stress = STAT_INIT["stress"]
 default stamina = STAT_INIT["stamina"]
 default money = STAT_INIT["money"]
 default ap = AP_PER_MONTH
+default exam_score = 0      # 最近一次 exam_roll() 的掷点，exam_pass() 只读它
 default turn = 1
 default flags = {}
