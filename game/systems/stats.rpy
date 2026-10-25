@@ -138,6 +138,8 @@ init -1 python:
         """拿 store.exam_score 比 EXAM_LINES 的及格线，不重新掷。
 
         key：monthly 35 / midterm 50 / final 60 / yearly 70。
+        调用约定：同一回合必须先 exam_roll() 再 exam_pass()，月末流程固定是
+        「exam_roll() → exam_pass(key)」。没掷过就查会按初始 0 判不及格。
         """
         return store.exam_score >= EXAM_LINES[line_key]
 
