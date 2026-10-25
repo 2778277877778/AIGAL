@@ -113,7 +113,11 @@ init -1 python:
         return store.study >= END_STUDY and store.stress <= END_STRESS and all(has_flag(f) for f in TRUE_FLAGS)
 
     def end_variant():
-        """END「花期未至」的正文变体（回合事件表 §7.1）：A 表被改回 / B 没跟着填 / C 花没开成。"""
+        """END「花期未至」的正文变体（回合事件表 §7.1）：A 表被改回 / B 没跟着填 / C 花没开成。
+
+        只该在 true_ending() 为假（走 END）时调用；TRUE 分支调它会拿到一个不属于结局的变体。
+        本函数只决定取哪一版正文，正文以大纲 §5 为准。
+        """
         if not has_flag("subject_support"):
             return "A"
         if not has_flag("same_subject"):
