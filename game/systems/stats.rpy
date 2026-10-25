@@ -30,19 +30,20 @@ init -1 python:
     TRUE_FLAGS = ("found_piano_room", "art_fair", "club", "music_hall", "subject_support", "same_subject")
 
     ## 行动表（回合事件表 §3）。study/stress/stamina 是纯增量，money 是花费。
-    ## ap = 0 表示不消耗行动点。
+    ## ap = 0 表示不消耗行动点。key 同时是剧情里调 do_action() 时传的名字。
     ACTIONS = {
-        "class":       dict(label="去教室上课",   ap=1, study=5,  stress=8,  stamina=-7),
-        "ask_zhoumo":  dict(label="找周墨问题",   ap=1, stress=-2),
-        "study":       dict(label="去图书馆自习", ap=1, study=5,  stress=8,  stamina=-7),
+        "class":       dict(label="去教室上课",     ap=1, study=5,  stress=8,  stamina=-7),
+        "ask_zhoumo":  dict(label="找周墨问题",     ap=1, stress=-2),
+        "study":       dict(label="去图书馆自习",   ap=1, study=5,  stress=8,  stamina=-7),
         "study_with":  dict(label="和周墨一起自习", ap=1, study=4, stress=5),
-        "canteen":     dict(label="去食堂吃饭",   ap=1, stress=-4, stamina=3, money=12),
-        "shop":        dict(label="去小卖部",     ap=0),
-        "sport":       dict(label="打球/跑操",    ap=1, stress=-4, stamina=10),
-        "watch":       dict(label="看周子博打球", ap=1, stress=-4),
-        "rest":        dict(label="回宿舍休息",   ap=1, stress=-10, stamina=8),
-        "piano":       dict(label="站在琴房外听", ap=1, stress=-8),
-        "club":        dict(label="去音乐社",     ap=1, stress=-6),
+        "canteen":     dict(label="去食堂吃饭",     ap=1, stress=-4, stamina=3, money=12),
+        "shop":        dict(label="去小卖部",       ap=0),
+        "sport":       dict(label="打球/跑操",      ap=1, stress=-4, stamina=10),
+        "watch":       dict(label="看周子博打球",   ap=1, stress=-4),
+        "rest":        dict(label="回宿舍休息",     ap=1, stress=-10, stamina=8),
+        "piano":       dict(label="站在琴房外听",   ap=1, stress=-8),   # 旧琴房，T3–T4
+        "hall":        dict(label="去礼堂看琴",     ap=1, stress=-8),   # 礼堂，T5 后
+        "club":        dict(label="去音乐社",       ap=1, stress=-6),   # 艺术楼，T6 后
     }
 
     def clamp(value, low=0, high=100):
@@ -126,11 +127,12 @@ init -1 python:
 
 
 ## 存档状态 ####################################################################
+## 初始值只写在 STAT_INIT 一处，这里从它取，别再重复写数字。
 
-default study = 30
-default stress = 10
-default stamina = 40
-default money = 100
-default ap = 3
+default study = STAT_INIT["study"]
+default stress = STAT_INIT["stress"]
+default stamina = STAT_INIT["stamina"]
+default money = STAT_INIT["money"]
+default ap = AP_PER_MONTH
 default turn = 1
 default flags = {}
