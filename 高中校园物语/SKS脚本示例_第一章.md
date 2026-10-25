@@ -35,7 +35,7 @@ GameScript/
 
 ```sks
 # 主角定义
-character mc "林晨" color=#FFFFFF
+character mc "XXX" color=#FFFFFF
 # color: 对话框颜色（白色）
 # 主角没有语音，只有旁白和选项
 ```
@@ -139,7 +139,7 @@ label chapter1_start:
     mc "（新学校...新开始...希望一切顺利。）"
 
     # 命名主角
-    $ player_name = input("请输入你的名字：") or "林晨"
+    $ player_name = input("请输入你的名字：") or "XXX"
     
     mc "（我叫[player_name]，从今天开始，就是这所学校的学生了。）"
 
