@@ -42,7 +42,7 @@ init -1 python:
         "watch_basketball": dict(label="看周子博打球",   ap=1, stress=-4),
         "rest_dorm":        dict(label="回宿舍休息",     ap=1, stress=-10, stamina=8),
         "listen_piano":     dict(label="站在琴房外听",   ap=1, stress=-8),   # 旧琴房，T3–T4
-        "visit_hall":       dict(label="去礼堂看琴",     ap=1, stress=-8),   # 礼堂，T5 后
+        "visit_auditorium": dict(label="去礼堂看琴",     ap=1, stress=-8),   # 礼堂，T5 后
         "visit_club":       dict(label="去音乐社",       ap=1, stress=-6),   # 艺术楼，T6 后
     }
 
@@ -57,7 +57,7 @@ init -1 python:
         "field":        dict(label="操场",     unlock=1),
         "art_building": dict(label="艺术楼",   unlock=2),
         "piano_room":   dict(label="旧琴房",   unlock=3),
-        "hall":         dict(label="礼堂",     unlock=5),
+        "auditorium":   dict(label="礼堂",     unlock=5),
         "music_room":   dict(label="音乐教室", unlock=6),
     }
 
