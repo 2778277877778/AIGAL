@@ -123,19 +123,22 @@ label t1_september:
             mc "那个……多喝热水。"
             zm "……现在是九月。"
             "她说完，把糖放进校服口袋，跟那张谱子放在一起。"
+            # 她收下了，才算 gave_candy
+            $ set_flag("gave_candy")
 
         "放在她旁边的台阶上，不说话":
             $ t1_candy = "step"
             "我把糖放在她旁边的台阶上，没说话，走开了。"
             "她低头看了一眼，没拿。走的时候也没拿。"
+            # 没送到，不置 gave_candy；T4 那句「被蚂蚁搬走」按 t1_candy 选
 
         "让周子博转交":
             $ t1_candy = "via_zzb"
             zzb "我送？行啊。"
             "他笑嘻嘻地送过去，说了句「他给的」，全班都听见了。"
             zm "……"
-
-    $ set_flag("gave_candy")
+            # 糖到了她手上（虽然全班都知道了），置位
+            $ set_flag("gave_candy")
 
     stu_a "学委，来一个呗！"
     stu_b "听说你钢琴十级。"

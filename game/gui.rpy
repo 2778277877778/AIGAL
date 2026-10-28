@@ -36,8 +36,8 @@ define gui.idle_color = "#ffffff9e"
 ## 小字（快捷菜单、HUD）：透白 52%
 define gui.idle_small_color = "#ffffff85"
 
-## 悬停：浅蓝提亮，比常态亮一档
-define gui.hover_color = "#dcecf8"
+## 悬停：浅蓝提亮一档。从 accent 算出来，改主色时悬停跟着变，别写死第二组色值。
+define gui.hover_color = Color(gui.accent_color).tint(0.35)
 
 ## 选中 / 高亮：回到纯白，和浅蓝区分开
 define gui.selected_color = "#ffffff"

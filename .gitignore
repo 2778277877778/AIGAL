@@ -24,3 +24,11 @@
 /dialogue.tab
 /dialogue.txt
 /strings.json
+
+# 一次性的截图 / 抓图脚本：它们常写死本机路径，别进仓库。
+# 正式要留的截图放 美术/ 并人工确认过内容。
+/game/zz_*.rpy
+/game/_shots*.rpy
+/game/screenshot*.rpy
+/tools/
+/dist/

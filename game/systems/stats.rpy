@@ -88,9 +88,13 @@ init -1 python:
         return 1.0
 
     def add_stat(name, delta, affected_by_state=False):
-        """改数值的唯一入口。affected_by_state=True 时按失眠/低体力打折正收益。"""
+        """改数值的唯一入口。affected_by_state=True 时按失眠/低体力打折正收益。
+
+        打折后四舍五入取整（5 减半 = 2.5 → 3），不用 Python 的 round()：
+        round(2.5) 走 banker's rounding 会给 2，失眠时反而比「减半」更狠。
+        """
         if affected_by_state and delta > 0:
-            delta = int(round(delta * gain_multiplier()))
+            delta = int(delta * gain_multiplier() + 0.5)
         if name == "money":
             store.money = max(0, store.money + delta)
         else:
@@ -139,8 +143,11 @@ init -1 python:
 
         key：monthly 35 / midterm 50 / final 60 / yearly 70。
         调用约定：同一回合必须先 exam_roll() 再 exam_pass()，月末流程固定是
-        「exam_roll() → exam_pass(key)」。没掷过就查会按初始 0 判不及格。
+        「exam_roll() → exam_pass(key)」。没掷过（exam_score 是 None）会直接抛，
+        不会静默判不及格。
         """
+        if store.exam_score is None:
+            raise Exception("还没掷点：exam_pass(%r) 之前必须先调 exam_roll()" % line_key)
         return store.exam_score >= EXAM_LINES[line_key]
 
     def set_flag(name):
@@ -176,6 +183,6 @@ default stress = STAT_INIT["stress"]
 default stamina = STAT_INIT["stamina"]
 default money = STAT_INIT["money"]
 default ap = AP_PER_MONTH
-default exam_score = 0      # 最近一次 exam_roll() 的掷点，exam_pass() 只读它
+default exam_score = None   # 最近一次 exam_roll() 的掷点；None = 本回合还没掷，exam_pass 会抛
 default turn = 1
 default flags = {}
