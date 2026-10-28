@@ -49,7 +49,7 @@ label free_actions:
                 $ do_action("listen_piano")
                 "（旧琴房 · 台词待补）"
 
-            "去礼堂看琴" if "hall" in unlocked_nodes():
+            "去礼堂看琴" if "auditorium" in unlocked_nodes():
                 $ do_action("visit_auditorium")
                 "（礼堂 · 台词待补）"
 
