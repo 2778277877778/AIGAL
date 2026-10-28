@@ -12,7 +12,7 @@ Ren'Py 校园视觉小说，简体中文，13+，首版只做 Windows。Demo 覆
 
 - `game/systems/stats.rpy`：四项数值（学习、压力、体力、金钱）、行动点、12 个行动、10 个地图节点、13 个 Flag、考试线和结局判定
 - 标题、中文字体、1920×1080 界面；`gui.rpy` 和 `ui_theme.rpy` 负责样式，`screens.rpy` 结构没动
-- 冒烟用例在 `game/testcases.rpy`，覆盖启动、主菜单和 T1 开头
+- 冒烟用例在 `game/testcases.rpy`，覆盖从主菜单开始、推进 T1 开头几句台词
 
 还没做：T2–T8 剧本、地图和个人界面、立绘、背景、音乐。素材目录是空的，背景用纯色占位。
 
