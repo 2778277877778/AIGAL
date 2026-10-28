@@ -372,8 +372,9 @@ screen main_menu():
             text "[config.name!t]":
                 style "main_menu_title"
 
-            ## 标题与版本号之间的一条雨青短线。
-            add Solid(gui.accent_color) xysize (gui.scale(104), gui.scale(2)) xalign 1.0
+            ## 标题底下一条 1px 白线，版本号压在下面。
+            ## 宽度按「6 字 × 96px + 5 × 字距 16px ≈ 658px」给；改标题字号/字距要一起改。
+            add Solid("#ffffff45") xysize (gui.scale(439), 1) xalign 1.0
 
             text "[config.version]":
                 style "main_menu_version"

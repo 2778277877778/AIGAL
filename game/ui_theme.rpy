@@ -40,9 +40,8 @@ style choice_button_text:
 style main_menu_title:
     font gui.title_text_font
     size gui.scale(64)
-    kerning gui.scale(8)
-    color "#f6f2e8"
-    outlines [(gui.scale(2), "#0a100eaa", 0, gui.scale(3))]
+    kerning gui.scale(11)
+    color "#ffffff"
 
 style main_menu_vbox:
     spacing gui.scale(8)
