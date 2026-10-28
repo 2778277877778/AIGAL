@@ -32,7 +32,7 @@ init -1 python:
     ## 13 个 Flag 的唯一名单（回合事件表 §5）。set_flag 只认这些名字，
     ## 拼错一个字母会当场抛异常，不会静默写进字典、让 TRUE 永远拿不到。
     FLAG_NAMES = (
-        "met_zhoumo", "gave_candy", "heard_piano", "heard_call",
+        "met_zhoumo", "offered_candy", "heard_piano", "heard_call",
         "found_piano_room", "art_fair", "sheet_music", "piano_crisis",
         "club", "music_hall", "subject_support", "same_subject", "confession",
     )
