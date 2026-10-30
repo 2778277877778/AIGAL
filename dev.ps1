@@ -45,7 +45,71 @@ function Find-Sdk {
     exit 1
 }
 
+function Enter-RenpyLock {
+    <#
+    Ren'Py 的 log.txt / saves / persistent 都是共享的：同一台机器同时跑两个实例，
+    第二个的 QuitException 会窜进第一个的测试，报出根本不存在的失败。
+    所以在开跑前先拿一把文件锁，拿不到就排队；持有者进程已死 → 视为陈旧锁，直接接管。
+    #>
+    param([string]$Command)
+
+    $path = Join-Path (Split-Path $repo -Parent) '.testlock'
+    $deadline = (Get-Date).AddSeconds(120)
+    $announced = $false
+
+    while ($true) {
+        try {
+            $fs = [System.IO.File]::Open($path, [System.IO.FileMode]::CreateNew,
+                [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+            $w = New-Object System.IO.StreamWriter($fs)
+            $w.WriteLine("pid=$PID")
+            $w.WriteLine("cmd=$Command")
+            $w.WriteLine("at=$((Get-Date).ToString('o'))")
+            $w.Flush()
+            return @{ Path = $path; Stream = $fs; Writer = $w }
+        }
+        catch {
+            $holderPid = 0
+            $ageMin = 0
+            try {
+                $first = Get-Content $path -TotalCount 1 -ErrorAction Stop
+                if ($first -match 'pid=(\d+)') { $holderPid = [int]$Matches[1] }
+                $ageMin = ((Get-Date) - (Get-Item $path).LastWriteTime).TotalMinutes
+            }
+            catch { }
+
+            $alive = $false
+            if ($holderPid -gt 0) { $alive = [bool](Get-Process -Id $holderPid -ErrorAction SilentlyContinue) }
+            ## 超过 30 分钟的锁一律视为陈旧（PID 会被系统复用，光看存活不可靠）
+            if ($alive -and $ageMin -lt 30) {
+                if (-not $announced) {
+                    Write-Host "另一个 Ren'Py 实例在跑（PID $holderPid），排队等锁…" -ForegroundColor Yellow
+                    $announced = $true
+                }
+                if ((Get-Date) -gt $deadline) {
+                    Write-Host "等锁超过 120 秒，放弃：$path" -ForegroundColor Red
+                    exit 1
+                }
+                Start-Sleep -Milliseconds 500
+                continue
+            }
+            Remove-Item $path -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+function Exit-RenpyLock {
+    param($Lock)
+    if (-not $Lock) { return }
+    try { $Lock.Writer.Dispose() } catch { }
+    try { $Lock.Stream.Dispose() } catch { }
+    Remove-Item $Lock.Path -Force -ErrorAction SilentlyContinue
+}
+
 $sdk = Find-Sdk
+$lock = Enter-RenpyLock $Command
+try {
+
 $py = Join-Path $sdk 'lib\py3-windows-x86_64\python.exe'
 
 Write-Host "SDK : $sdk"
@@ -174,5 +238,8 @@ switch ($Command) {
         exit $code
     }
 }
+
+}
+finally { Exit-RenpyLock $lock }
 
 exit $LASTEXITCODE
