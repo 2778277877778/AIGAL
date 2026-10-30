@@ -55,7 +55,7 @@ AI 那层还没代码，只有设计，四个文件都没建：
 - `action_key` 必须在 `ACTIONS` 里；`choices` 空了走默认选项。
 - `flags` 只认该拍的 `allowed_flags` 白名单，还要求 `beat.turn == store.turn`。`TRUE_FLAGS` 和 `confession` 对 AI 拉黑，只 `set` 不 `unset`。
 - `speaker` 只能是 `mc / zm / zzb / zeng / stu_a / stu_b / inner`，别的一律丢。
-- 单拍 `lines` 最多 8 条，单条最多 120 字，整段最多 600 字。每拍输入 ≤3000 token、输出 ≤800。
+- 单拍 `lines` 最多 8 条，单条最多 120 字，整段最多 400 字（提示词目标 250，400 是校验上限）。每拍输入 ≤3000 token、输出 ≤800。
 
 ## 运行
 

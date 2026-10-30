@@ -113,7 +113,7 @@
 - 没有数值字段。`action_key` 必须 ∈ `ACTIONS`，`choices` 为空时走默认选项。
 - `flags` 只认该 beat 的 `allowed_flags` 白名单，且要求 `beat.turn == store.turn`；`TRUE_FLAGS` 与 `confession` 对 AI 拉黑；只 `set` 不 `unset`。
 - `speaker` ∈ `mc/zm/zzb/zeng/stu_a/stu_b/inner`，其余一律丢弃。
-- 单拍 `lines` ≤8 条，单条 ≤120 字，整段 ≤600 字。
+- 单拍 `lines` ≤8 条，单条 ≤120 字，整段 ≤400 字（提示词目标是 250 字，400 是校验上限，不是写作目标）。
 
 ### 4.3 文本清洗顺序（定死）
 1. `renpy.filter_text_tags(t, allow=())`
