@@ -334,6 +334,10 @@ testcase event_pool:
                 assert AI_BEATS[_eid].get("turns"), "事件缺 turns：%s" % _eid
             assert AI_BEATS["e_welcome"]["turns"] == (1, 2)
 
+            ## 每个候选的月窗口必须至少命中一个槽位月，否则登记了也永远抽不到
+            _dead = [_eid for _eid in EVENT_POOL if not event_months_cover_slot(_eid)]
+            assert not _dead, "窗口命中不了任何槽位：%s" % ", ".join(sorted(_dead))
+
             class _FakeRng(object):
                 def __init__(self, value):
                     self.value = value

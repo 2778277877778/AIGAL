@@ -15,7 +15,7 @@ init -1 python:
     EVENT_HIT = 0.6            # 每槽先掷「出不出」
     EVENT_SEEN_RATE = 0.3       # 同局已出过的权重衰减
 
-    ## 有事件槽的回合（§1 总表的「槽」列，15 个）
+    ## 有事件槽的回合（§1 总表的「槽」列，14 个；全落在偶数月）
     SLOT_TURNS = (2, 4, 6, 8, 10, 14, 16, 18, 20, 22, 26, 28, 30, 32)
 
     ## 20 个候选（§3.2 + 末尾补的两条）。
@@ -25,20 +25,20 @@ init -1 python:
         "e_sports_aut":    dict(grade=1, months=(10,),          weight=3, tags=("sports",),           exclude=("e_sports_spring",), requires=()),
         "e_open_day":      dict(grade=1, months=(9, 10, 11),    weight=2, tags=("open",),             exclude=(),                 requires=()),
         "e_outing":        dict(grade=1, months=(10, 11),       weight=2, tags=("trip",),             exclude=("e_study_tour",),  requires=()),
-        "e_parent1":       dict(grade=1, months=(11,),          weight=2, tags=("parent",),           exclude=("e_culture",),     requires=()),
+        "e_parent1":       dict(grade=1, months=(10, 11),       weight=2, tags=("parent",),           exclude=("e_culture",),     requires=()),
         "e_newyear":       dict(grade=1, months=(12,),          weight=2, tags=("stage", "festival"), exclude=("e_welcome",),     requires=()),
         "e_spring_fest":   dict(grade=1, months=(2,),           weight=2, tags=("festival",),         exclude=(),                 requires=()),
-        "e_placement":     dict(grade=1, months=(9,),           weight=1, tags=("exam",),             exclude=(),                 requires=()),
-        "e_culture":       dict(grade=2, months=(11,),          weight=3, tags=("stage", "festival"), exclude=("e_parent1",),     requires=()),
+        "e_placement":     dict(grade=1, months=(9, 10),        weight=1, tags=("exam",),             exclude=(),                 requires=()),
+        "e_culture":       dict(grade=2, months=(10, 11),       weight=3, tags=("stage", "festival"), exclude=("e_parent1",),     requires=()),
         "e_sports_spring": dict(grade=2, months=(4,),           weight=3, tags=("sports",),           exclude=("e_sports_aut",),  requires=()),
-        "e_study_tour":    dict(grade=2, months=(5,),           weight=3, tags=("trip",),             exclude=("e_outing",),      requires=()),
+        "e_study_tour":    dict(grade=2, months=(4, 5),         weight=3, tags=("trip",),             exclude=("e_outing",),      requires=()),
         "e_club_fair":     dict(grade=2, months=(9, 10),        weight=2, tags=("club",),             exclude=(),                 requires=()),
         "e_chorus":        dict(grade=2, months=(4, 5),         weight=2, tags=("stage",),            exclude=(),                 requires=()),
         "e_transfer":      dict(grade=2, months=None,           weight=1, tags=("misc",),             exclude=(),                 requires=()),
         "e_pledge":        dict(grade=3, months=(2, 3),         weight=3, tags=("assembly",),         exclude=(),                 requires=()),
         "e_mock":          dict(grade=3, months=(3, 4),         weight=2, tags=("exam",),             exclude=("e_final_sprint",), requires=()),
-        "e_apply":         dict(grade=3, months=(5,),           weight=2, tags=("form",),             exclude=(),                 requires=()),
-        "e_grad_photo":    dict(grade=3, months=(5, 6),         weight=2, tags=("assembly",),         exclude=(),                 requires=()),
+        "e_apply":         dict(grade=3, months=(4, 5),         weight=2, tags=("form",),             exclude=(),                 requires=()),
+        "e_grad_photo":    dict(grade=3, months=(4, 5, 6),      weight=2, tags=("assembly",),         exclude=(),                 requires=()),
         "e_final_sprint":  dict(grade=3, months=(4, 5),         weight=2, tags=("exam",),             exclude=("e_mock",),        requires=()),
         "e_university":    dict(grade=3, months=(10, 11),       weight=1, tags=("open",),             exclude=(),                 requires=()),
     }
@@ -78,6 +78,22 @@ init -1 python:
     def event_slot_at(turn_index=None):
         t = store.turn if turn_index is None else turn_index
         return t in SLOT_TURNS
+
+
+    def event_months_cover_slot(eid):
+        """这个事件的月窗口是否至少命中一个槽位月。
+
+        槽位只落在偶数月（见 SLOT_TURNS）；窗口只写奇数月的事件永远抽不到，
+        登记时看不出来——所以 event_pool 用例用这个函数把死数据挡在提交前。
+        """
+        e = EVENT_POOL[eid]
+        if e["months"] is None:
+            return True
+        slot_months = set()
+        for t in SLOT_TURNS:
+            if school_year(t) == e["grade"]:
+                slot_months.add(calendar_month(t))
+        return bool(set(e["months"]) & slot_months)
 
 
     def month_mainline_tags(turn_index=None):
