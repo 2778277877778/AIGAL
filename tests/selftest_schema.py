@@ -1,4 +1,4 @@
-﻿"""schema_core 的故障矩阵自测（不需要 Ren'Py，直接 python 跑）。
+"""schema_core 的故障矩阵自测（不需要 Ren'Py，直接 python 跑）。
 
     python tests/selftest_schema.py
 
@@ -28,9 +28,9 @@ def check(name, cond, detail=""):
 
 
 def ctx(beat="t2_piano", turn=2, speakers=None, actions=None, flags=(),
-        expect_choices=False):
+        expect_choices=False, scope="scene"):
     return {
-        "beat": beat, "turn": turn,
+        "beat": beat, "turn": turn, "scope": scope,
         "speakers": tuple(speakers if speakers is not None else S.ALL_SPEAKERS),
         "actions": tuple(actions if actions is not None else ("rest_dorm", "study", "eat_canteen")),
         "flags": tuple(flags),
@@ -177,20 +177,48 @@ def case12_bad_ctx():
     check("12 speaker 不在白名单→拒", not v2["ok"] and v2["reason"] == "no_lines")
 
 
+def case13_budget_split():
+    """拍内 400 / 结局 1000 两套口径不能互相串。
+
+    拍内：4×90 + 1×120 = 480，超 400 的部分要修尾句，不能为了压字数砍掉半段戏。
+    结局：5×200 = 1000 必须原样保住，包括单行 200 不被拍内的 120 截断。
+    """
+    scene_lines = [{"speaker": "inner", "text": "字" * 90} for _ in range(4)]
+    scene_lines.append({"speaker": "zm", "text": "字" * 90 + "。" * 30})
+    raw = json.dumps({"lines": scene_lines, "choices": [], "flags": [], "mood": ""},
+                     ensure_ascii=False)
+
+    v = S.validate(raw, ctx())
+    total = sum(len(l["text"]) for l in v["lines"])
+    check("13 拍内合计压到 400", v["ok"] and total <= S.TOTAL_MAX, "实际 %d 字" % total)
+    check("13 修尾句没砍行", len(v["lines"]) == 5, "行数 %d" % len(v["lines"]))
+    check("13 记了 total_truncated", "total_truncated" in v["notes"])
+
+    end_lines = [{"speaker": "inner", "text": "字" * 200} for _ in range(5)]
+    raw2 = json.dumps({"lines": end_lines, "choices": [], "flags": [], "mood": ""},
+                      ensure_ascii=False)
+    v2 = S.validate(raw2, ctx(beat="t8_true", turn=8, scope="ending"))
+    total2 = sum(len(l["text"]) for l in v2["lines"])
+    check("13 结局不被拍内上限截", v2["ok"] and total2 == 1000, "实际 %d 字" % total2)
+    check("13 结局单行走 200 上限", max(len(l["text"]) for l in v2["lines"]) == S.ENDING_LINE_MAX)
+    check("13 结局没触发截断", "total_truncated" not in v2["notes"])
+
+
 def main():
-    print("schema_core %s / %s  (line<=%d, choices<=%d)" % (
-        S.SCHEMA_VER, S.PROMPT_VER, S.LINE_MAX, S.CHOICES_MAX))
+    print("schema_core %s / %s  (拍内 %d 字/行 %d 字合计；结局 %d/%d；choices<=%d)" % (
+        S.SCHEMA_VER, S.PROMPT_VER, S.LINE_MAX, S.TOTAL_MAX,
+        S.ENDING_LINE_MAX, S.ENDING_TOTAL_MAX, S.CHOICES_MAX))
     for fn in (case01_happy, case02_fence, case03_trailing_comma, case04_truncated,
                case05_empty_and_html, case06_no_choices, case07_too_long,
                case08_injection, case09_all_illegal, case10_numeric_smuggling,
-               case11_choices_missing, case12_bad_ctx):
+               case11_choices_missing, case12_bad_ctx, case13_budget_split):
         print(fn.__name__)
         fn()
     print("")
     if FAILS:
         print("FAILED: %d 项 —— %s" % (len(FAILS), ", ".join(FAILS)))
         return 1
-    print("OK: 12 项全过")
+    print("OK: 13 项全过")
     return 0
 
 

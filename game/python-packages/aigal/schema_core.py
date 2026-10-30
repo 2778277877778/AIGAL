@@ -24,7 +24,8 @@ import json
 import re
 
 ## 换掉 schema/提示词任何一处都要进缓存 key，否则旧缓存会继续命中旧口吻。
-SCHEMA_VER = 1
+## 2：长度口径收到 250 字（运行时预算 v1），旧的 900 字缓存在新预算下不可用。
+SCHEMA_VER = 2
 PROMPT_VER = "角色_v1"
 
 
@@ -34,13 +35,22 @@ def cache_prefix():
 
 
 ## 长度上限（按字符算，中文一个字算 1）##########################################
-LINE_MAX = 160
-LINES_MAX = 8
-CHOICE_MAX = 24
+## 口径见 高中校园物语/运行时预算_v1.md + Chief 的定稿：
+##   提示词目标 250（管节奏），校验上限 400（管兜底），单行 120。
+##   目标有 20–30% 过冲是常态，250 当硬上限会把正常发挥砍掉；900 当上限预取窗口又会失效。
+## 只在这里截，代码别处不许再截一次。
+LINE_MAX = 120
+LINES_MAX = 5
+CHOICE_MAX = 16
 CHOICES_MAX = 3
 MOOD_MAX = 8
 FLAGS_MAX = 3
-TOTAL_MAX = 900
+TOTAL_MAX = 400
+
+## 结局单独一套：复用的后果是 TRUE 结局被截到 400 字，那是整局最后一段正文。
+## TODO(M4)：真人交付时的口径是 1000 字 / 30s 超时，等结局分支接进来再定。
+ENDING_LINE_MAX = 200
+ENDING_TOTAL_MAX = 1000
 
 ## 主角名占位。AI 不知道玩家填的名字，正文里一律用这个 token，
 ## 到 ai_render() 才换成真名。字符集刻意不含 {}[]<>，不会被当标记解析。
@@ -202,6 +212,13 @@ def validate(raw, ctx):
     if not isinstance(raw_lines, list):
         return _reject("lines_not_list", notes, raw_len)
 
+    ## 拍内一套（250 字），结局一套（600 字）。结局要是被拍内那套截到 250，
+    ## 整局最后一段正文就没了，所以这两套常量不能互相复用。
+    if (ctx.get("scope") or "scene") == "ending":
+        line_max, total_max = ENDING_LINE_MAX, ENDING_TOTAL_MAX
+    else:
+        line_max, total_max = LINE_MAX, TOTAL_MAX
+
     lines = []
     for item in raw_lines:
         if len(lines) >= LINES_MAX:
@@ -218,7 +235,7 @@ def validate(raw, ctx):
         if sp not in allowed_speakers:
             notes.append("speaker_rejected:%s" % _show(sp or item.get("speaker")))
             continue
-        txt, n2 = sanitize_text(item.get("text"), LINE_MAX)
+        txt, n2 = sanitize_text(item.get("text"), line_max)
         notes.extend(n2)
         if not txt:
             notes.append("line_empty")
@@ -300,11 +317,20 @@ def validate(raw, ctx):
     if not mood:
         mood = ""
 
-    ## 8. 总字数兜底：从末尾砍行，narrator 的长叙事通常是最后一条
+    ## 8. 总字数兜底：先修尾句，实在不够再砍行。
+    ##    整行砍掉会丢一整个表演段落，修尾句只丢半句；剩下的余量不足 4 字才丢整行。
     total = sum(len(l["text"]) for l in lines)
-    while total > TOTAL_MAX and len(lines) > 1:
-        total -= len(lines[-1]["text"])
-        lines.pop()
+    guard = 0
+    while total > total_max and len(lines) > 1 and guard < 32:
+        guard += 1
+        over = total - total_max
+        last = lines[-1]["text"]
+        if len(last) - over > 4:
+            lines[-1]["text"] = last[:len(last) - over].rstrip()
+            total = sum(len(l["text"]) for l in lines)
+        else:
+            total -= len(last)
+            lines.pop()
         notes.append("total_truncated")
 
     return {

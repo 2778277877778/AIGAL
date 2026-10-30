@@ -42,6 +42,13 @@ init -1 python:
         "t2_exam":        dict(turn=2, flags=(), expect_choices=False),
         "t2_call":        dict(turn=2, flags=(), expect_choices=True),
         "t2_free":        dict(turn=2, flags=(), expect_choices=True),
+
+        ## T8 结局。正文比拍内长，走 ENDING_* 那套上限（160 字/行、600 字合计），
+        ## 别让它跟拍内那套 250 字共用——截到 250 就是整局最后一段正文没了。
+        "t8_true":        dict(turn=8, flags=(), expect_choices=False, scope="ending"),
+        "t8_end_a":       dict(turn=8, flags=(), expect_choices=False, scope="ending"),
+        "t8_end_b":       dict(turn=8, flags=(), expect_choices=False, scope="ending"),
+        "t8_end_c":       dict(turn=8, flags=(), expect_choices=False, scope="ending"),
     }
 
     ## 自由行动段每个月都有，不用一个月往表里抄一行。
@@ -93,6 +100,7 @@ init -1 python:
         return {
             "beat": beat_id,
             "turn": b["turn"],
+            "scope": b.get("scope", "scene"),   # scene 走 400 字，ending 走另一套
             "speakers": tuple(speakers if speakers is not None else aischema.ALL_SPEAKERS),
             "actions": tuple(actions if actions is not None else ai_default_actions()),
             "flags": tuple(b["flags"]),

@@ -84,6 +84,11 @@ init -6 python in aig:
         """线程里调用。只碰 Job 自己的字段，不碰 renpy。"""
         with _LOCK:
             if job.abandoned:
+                ## 已经被 wait() 判超时放走了。内容没人要，但端点其实是活的：
+                ## 迟到成功必须把连续失败清零，否则一个 12.1s 才回话的慢端点
+                ## 连三次就把整局打成离线，而每次内容其实都拿到了。
+                if state == "done":
+                    _STATE["consec_fail"] = 0
                 return
             job.state = state
             job.text = text
@@ -154,8 +159,12 @@ init -6 python in aig:
 
     ## 对外：发起 ##################################################################
 
-    def start_http(url, headers, body_json, tag=""):
-        """POST 一个 JSON body，返回 job id。离线 / 跳过中返回 0。"""
+    def start_http(url, headers, body_json, tag="", method="POST"):
+        """发一个 JSON 请求，返回 job id。离线 / 跳过中返回 0。
+
+        method 默认 POST（chat/completions 的口径）。探针打 /v1/models 这种只吃 GET
+        的端点时要显式传 "GET"，否则一类 404 会被误判成「网络不通」。
+        """
         if not allowed():
             return 0
         job = _new_job(tag)
@@ -168,7 +177,7 @@ init -6 python in aig:
                 return
             try:
                 data = json.dumps(body_json, ensure_ascii=False).encode("utf-8")
-                r = requests.post(url, data=data, headers=headers, timeout=TIMEOUT)
+                r = requests.request(method, url, data=data, headers=headers, timeout=TIMEOUT)
             except Exception as e:
                 _finish(j, "error", None, _brief(e))
                 return

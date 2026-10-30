@@ -15,6 +15,30 @@ init -1 python:
         if not cond:
             raise Exception("AIGAL 自测失败：" + msg)
 
+    def _aig_check_saveable():
+        """在飞状态下验存档路径。返回 "" 表示干净，否则返回原因。
+
+        两条路都走：
+          1) 存档真正序列化的那份根清单（renpy.game.log.get_roots()），直接 pickle 一遍
+             —— 这就是 cannot pickle _thread.lock 的实际触发点
+          2) 真调一次 renpy.save()，非 pickle 类的错误按环境问题放过（主菜单没有存档上下文
+             之类的），不让它冒充「Job 泄漏」
+        """
+        import pickle
+        try:
+            pickle.dumps(renpy.game.log.get_roots(), pickle.HIGHEST_PROTOCOL)
+        except Exception as e:
+            return "根清单 pickle 失败：%s: %s" % (type(e).__name__, e)
+        try:
+            renpy.save("aig-selftest")
+            renpy.unlink_save("aig-selftest")
+        except Exception as e:
+            msg = "%s: %s" % (type(e).__name__, e)
+            if "pickle" in msg or "_thread" in msg or "_thread.lock" in msg:
+                return "renpy.save 被线程对象卡住：" + msg
+            return "renpy.save 失败：" + msg
+        return ""
+
 
 testsuite ai_layer:
     teardown:
@@ -66,7 +90,7 @@ testcase cache_two_layers:
     $ _aig_test(aig.get(_k) == "缓存正文", "put 之后应命中")
     $ renpy.store.ai_cache = {}
     $ _aig_test(aig.get(_k) == "缓存正文", "persistent 那层没兜住")
-    $ _aig_test("s1|角色_v1" in _k, "key 前缀不是 schema 给的：%s" % _k)
+    $ _aig_test(aischema.cache_prefix() in _k, "key 前缀不是 schema 给的：%s" % _k)
 
 
 ## 同一拍的 seed 稳定；换 choice_path 才换 seed
@@ -75,16 +99,20 @@ testcase seed_stable:
     $ _s2 = aig.seed_for("t1_night_piano")
     $ _s3 = aig.seed_for("t1_night_piano", "A")
     $ _aig_test(_s1 == _s2, "同 beat 的 seed 抖了：%r vs %r" % (_s1, _s2))
-    $ _aig_test(_s3 != _s1 or _s3 == _s1, "占位：只验取得到")
+    $ _aig_test(aig.seed_for("t1_night_piano", "A") == _s3, "带 choice_path 的 seed 不稳定")
+    $ _aig_test(aig.key("t1_night_piano", _s1, "A") != aig.key("t1_night_piano", _s1, ""),
+                 "choice_path 没进 key")
     $ _aig_test(isinstance(_s1, int) and 1 <= _s1 < 2 ** 31, "seed 不是 int：%r" % (_s1,))
 
 
-## 在飞的任务里不能有任何 Job 被 store 抓住（否则存档 pickle 直接炸）
-testcase job_not_in_store:
-    $ _j = aig.start_fake("slow", delay=0.5)
-    $ _bad = [k for k, v in renpy.store.__dict__.items() if type(v).__name__ == "Job"]
-    $ _aig_test(not _bad, "store 里出现了 Job：%r" % (_bad,))
-    $ _aig_test(aig.cancel_all() is None, "cancel_all 应返回 None")
+## 在飞状态下存档必须不炸：Job 只要被 store 抓住，这里就会 cannot pickle _thread.lock
+testcase save_while_running:
+    $ aig.reset_circuit()
+    $ _j = aig.start_fake("slow", delay=1.5)
+    $ _aig_test(_j != 0, "start_fake 没给 id")
+    $ _why = _aig_check_saveable()
+    $ _aig_test(_why == "", _why)
+    $ aig.cancel_all()
     $ aig.reset_circuit()
 
 
