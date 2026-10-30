@@ -2,11 +2,11 @@
 
 > 派生自 [2778277877778/gal](https://github.com/2778277877778/gal)，沿用原仓库的 MIT 许可（见[许可](#许可)）。原仓库「高中校园物语」的提交历史整份保留。
 
-Ren'Py 校园视觉小说，带日程数值，简体中文，13+，首版只做 Windows。单局 60–90 分钟，8 回合（高一学年，一回合一个自然月），1 个 TRUE 结局加 1 个 END 结局，END 有 3 种正文变体。无内购，API key 玩家自己填，钱也他自己出。
+Ren'Py 校园视觉小说，带日程数值，简体中文，13+，首版只做 Windows。一局 60–90 分钟。最终形态走三年 36 个月格：30 个完整回合加 6 个暑假短过场，三位女主三条线，5 个结局。无内购，API key 玩家自己填，钱也他自己出。
 
-原版是固定剧本。这一版把剧情文字那层换成 AI 现场生成：这一拍发生什么、谁说什么、选项怎么措辞，每局不一样。玩法骨架、数值、界面、结局判定都不动。完整设计见[策划方案_AIGAL_v1.md](高中校园物语/策划方案_AIGAL_v1.md)，那份是权威，README 只做入口。
+原版是固定剧本。这一版把台词那层交给 AI 现场写，骨架不动：哪个月发生哪件事、有几个选项、Flag 怎么置，全在脚本里。玩家每局读到的台词不一样，走的线和到达的结局还是那几个。
 
-游戏本体暂时还叫「高中校园物语」（`config.name`），仓库名是 AIGAL。
+游戏本体暂时还叫「高中校园物语」（`config.name`），仓库名是 AIGAL。结构以[剧情大纲_三年_v1.md](高中校园物语/剧情大纲_三年_v1.md) 为准，数字以[运行时预算_v1.md](高中校园物语/运行时预算_v1.md) 为准。[策划方案_AIGAL_v1.md](高中校园物语/策划方案_AIGAL_v1.md) 是立项稿，里面 8 回合、2 结局那套结构已经被大纲取代。
 
 三件事先说清楚：
 
@@ -19,85 +19,101 @@ Ren'Py 校园视觉小说，带日程数值，简体中文，13+，首版只做 
 冲突时按序号来。
 
 1. 数值、Flag、考试、结局只走 `game/systems/stats.rpy`。AI 的输出里没有数值字段，有也不认。
-2. 骨架由代码定：第几回合、第几拍、几个选项是死的；拍内发生什么、台词怎么写、选项怎么措辞随机。seed 月初掷一次存进存档，读档和重放能对上。
-3. 没有 key 也能通关。本地模板库是必做项，不当兜底补丁用。
-4. AI 出来的文本一律当外部输入，不清洗不许进 `say`。网页上能塞的东西，模型也能塞。
-5. 任何逻辑都不依赖立绘和背景，占位图得能跑完全程。
+2. AI 只写台词。选项从脚本的 `BEAT_CHOICES` 拿，Flag 由脚本 `set_flag` 置，这两样不由模型产出。
+3. 骨架写死，台词随机。里程碑钉在固定窗口里，窗口内没满足就顺延，过了窗口就作废、奖励并进该线的 END，不卡主线。随机只发生在怎么说，以及随机事件抽到哪一个。
+4. 没有 key 也能通关。本地模板库覆盖全流程，不当兜底补丁用。
+5. AI 出来的文本当外部输入，不清洗不许进 `say`。网页上能塞的东西，模型也能塞。
+6. 任何逻辑都不依赖立绘和背景，占位图得能跑完全程。
 
 ## 进度
 
-现在能跑的还是原版那条固定剧本线：从主菜单打到 T1 九月月底结算（报到、开学典礼、军训、班委选举，加 3 点行动点的自由行动），再回主菜单。T2 十月搭好了骨架，有通用自由行动段，剧本内容没写。版本号 `0.0.1-demo`。
+剧情：高一学年那一轮写完了，T1 到 T8，加 4 条结局正文分支（TRUE，加 END 的 A/B/C 三种变体）。T1 全手写，一次 AI 都不调；T2 往后走 director。关系变量层在 `game/systems/relations.rpy`，结局判定仍归 `stats.rpy`。下一步是照大纲扩到三年 36 格，T9 往后还没写。
 
-AI 那层还没代码，只有设计，四个文件都没建：
+AI 那层也落地了，`game/ai/` 下这几个文件都在跑：
 
-| 文件 | 管什么 | 不许干 |
-|---|---|---|
-| `game/ai/schema.rpy` | 校验输出结构、清洗文本、校验 speaker/action_key/flag 白名单 | 不发请求、不写 store |
-| `game/ai/director.rpy` | 拼 prompt、选事件、调 provider、失败重试和降级 | 不直接联网、不判结局 |
-| `game/ai/provider.rpy` | HTTP 请求、线程、超时、熔断 | 不碰 store、不调 `renpy.notify` |
-| `game/ai/cache.rpy` | 双层缓存、预取、LRU 封顶 | 不改 store 里的 dict 本体 |
+| 文件 | 管什么 |
+|---|---|
+| `provider.rpy` | HTTP 请求、线程、超时、熔断 |
+| `director.rpy` | 拼提示词、缓存、预取、重试、8 秒软降级 |
+| `cache.rpy` | `store.ai_log` 与 `persistent.ai_seen` 两级缓存 |
+| `schema.rpy` | 拍表 `BEATS`、输出校验、speaker 与 Flag 白名单 |
+| `fallback.rpy` | 无 key 时的模板库，以及每拍的选项表 `BEAT_CHOICES` |
+| `prompts.rpy` / `prompts_data.rpy` | 提示词数据 |
+| `settings.rpy` / `settings_screen.rpy` | key 存储、端点预设、测试连接、诊断页 |
+| `api.md` | 请求与返回格式、错误码 |
 
-[人物卡 v1.1.2](高中校园物语/人物卡_v1.md) 已经备好，另有[机器版 JSON](高中校园物语/人物卡_v1.json)，13 个 id 全部在 `characters.rpy` 里有 define，`ai_validate` 不会剔台词。喂的时候每拍只拼相关角色 150–200 字，整卡塞进去会挤掉场景信息。
+校验的真身在 `game/python-packages/aigal/schema_core.py`，纯 Python，不依赖 Ren'Py，可以单独跑。设置页、生成中界面、截图回归已经做完；`tests/shots/` 是基准图，不进默认测试链。
+
+验收标准没变：`.\dev.ps1 lint` 0 错、`.\dev.ps1 test` 全绿、无 key 冷启动能通关、同一条轨迹重放数值和结局一致、注入文本不进界面也不进日志。
 
 ## AI 输出
 
-模型只许返回四个字段，一个数值字段都没有：
+模型写台词，不写选项和 Flag：
 
 ```json
 {
-  "lines":   [{"speaker": "zm", "text": "…"}],
-  "choices": [{"text": "…", "action_key": "study"}],
-  "flags":   ["heard_piano"],
-  "mood":    "quiet"
+  "lines": [{"speaker": "zm", "text": "……不许说出去。"}],
+  "mood": "quiet"
 }
 ```
 
-- `action_key` 必须在 `ACTIONS` 里；`choices` 空了走默认选项。
-- `flags` 只认该拍的 `allowed_flags` 白名单，还要求 `beat.turn == store.turn`。`TRUE_FLAGS` 和 `confession` 对 AI 拉黑，只 `set` 不 `unset`。
-- `speaker` 只能是 `mc / zm / zzb / zeng / stu_a / stu_b / inner`，别的一律丢。
-- 单拍 `lines` 最多 8 条，单条最多 120 字，整段最多 400 字（提示词目标 250，400 是校验上限）。每拍输入 ≤3000 token、输出 ≤800。
+- `speaker` 只能是 `mc / zm / zzb / zeng / stu_a / stu_b / bro / xia / kong / x / zm_dad / zm_mom / inner / nar`，还要真的 define 过，没 define 的行直接剔。目前 13 个 id 全部已 define。
+- 一拍最多 5 行，单行 80 字以内（120 是兜底），整拍目标 250 字、上限 400 字。这是版面约束不是文风建议：正文框四行约 124 字，130 字以上会压到画面上，Ren'Py 不裁切也不报错。
+- 1.5 秒才浮出生成中界面，8 秒软降级走模板，12 秒硬熔断。下一拍预取，命中就没有等待。
+- 提示词只喂事实清单（谁在场、必须发生什么，最多 3 条），不喂范文台词。给范文，模型只会做同义改写，两局读起来就成了同一段。
+
+`schema_core.py` 为了兼容旧缓存还认 `choices` / `flags`，但脚本给的选择和 Flag 才是准的，模型多写的一律不采信。
 
 ## 运行
 
-需要 Ren'Py 8.5.3 SDK，解压版就行，不用装进系统。SDK 自带 Python 3.12，别的都不用装，详见[依赖.md](依赖.md)。下面 `<SDK>` 是 SDK 目录，`<仓库>` 是仓库根目录。
+需要 Ren'Py 8.5.3 SDK，解压版就行，不用装进系统。SDK 自带 Python 3.12，别的都不用装，详见[依赖.md](依赖.md)。
+
+`dev.ps1` 会把 SDK 路径、命令和参数都处理掉：
 
 ```powershell
-# 启动游戏
+.\dev.ps1 run          # 启动游戏
+.\dev.ps1 lint         # 提交前检查
+.\dev.ps1 test         # 冒烟与 AI 用例
+.\dev.ps1 compile      # 生成 .rpyc
+.\dev.ps1 shots        # 截图比对，改过版式先跑 shots overwrite
+.\dev.ps1 distribute   # 打包 Windows 版
+```
+
+不用 `dev.ps1` 时，`<SDK>` 是 SDK 目录，`<仓库>` 是仓库根目录：
+
+```powershell
 "<SDK>\renpy.exe" "<仓库>"
-
-# 提交前检查
 "<SDK>\lib\py3-windows-x86_64\python.exe" renpy.py "<仓库>" lint
-
-# 生成 .rpyc
-... renpy.py "<仓库>" compile
-
-# 冒烟自测
-... renpy.py "<仓库>" test
-
-# 打包 Windows 版
-... renpy.py "<仓库>" distribute
 ```
 
 环境细节、沙箱里的存档目录设置、数值系统的函数说明，都在[开发环境说明.md](开发环境说明.md)。
 
-现在跑起来不需要联网。等 AI 层落地，运行时要联网调 API（OpenAI 兼容端点，`base_url` / `model` / `key` / `temperature` / `timeout` 都可配），`依赖.md` 里「运行时不联网」那句到时一起改。
+一台机器同时只跑一个 Ren'Py 实例。`log.txt`、`saves/`、`persistent` 都是共享的，两个实例撞上会互相打断，写出成堆的假失败。要并发验证，先等 `dev.ps1` 的锁。
+
+跑起来现在可以不需要联网：无 key 或无网时全部走模板库。接上 key 之后调 OpenAI 兼容端点，`base_url` / `model` / `key` / `temperature` / `timeout` 都可配。
 
 ## 目录
 
 ```
 game/
-  script.rpy        入口，跳到 t1_september
-  options.rpy       标题、版本 0.0.1-demo、存档目录
+  script.rpy        入口
+  options.rpy       标题、版本、存档目录
   gui.rpy           GUI 变量（1920×1080）
-  screens.rpy       默认界面
+  screens.rpy       默认界面，设置页里有 AI 那一栏
   ui_zh.rpy         界面中文化
   ui_theme.rpy      样式微调
   testcases.rpy     冒烟用例
-  systems/stats.rpy 数值、AP、Flag、结局判定的唯一入口
-  story/            人物定义和剧本（T1 完整、T2 骨架）
-  ai/               AI 四层，还没建
+  ai/               AI 四层、模板库、提示词、设置页
+  systems/          stats.rpy 数值与结局判定，relations.rpy 关系变量
+  story/            人物定义、T1–T8 剧本、结局分支
+  python-packages/aigal/schema_core.py  校验与清洗，纯 Python
   fonts/ gui/ images/ audio/
-高中校园物语/         策划文档（方案、人物卡、大纲、事件表、设定）
+高中校园物语/         策划文档，见下一节
+tests/
+  check_cards.py    人物卡计数检查
+  selftest_schema.py  schema 自检
+  build_prompts.py  提示词构建
+  shots/ screenshots/  截图回归用例与基准图
 美术/                UI 规范、界面风格、预览图
 开发环境说明.md       环境、命令、数值系统
 依赖.md              依赖清单、换机器怎么跑
@@ -105,10 +121,16 @@ game/
 
 ## 文档
 
-现行的两份：
+结构：
 
-- [策划方案_AIGAL_v1.md](高中校园物语/策划方案_AIGAL_v1.md)：v1。定位、五条原则、回合结构、随机化、AI 四层、成本、工期、验收、风险
-- [人物卡_v1.md](高中校园物语/人物卡_v1.md) / [.json](高中校园物语/人物卡_v1.json)：v1.1。从剧本和 git 历史里提取的说话方式、台词、行为反应、分拍状态，每条带出处，四级状态（✅ 明文依据 / 🟡 归纳 / ⬜ 待设计 / 🆕 拟定可改）
+- [剧情大纲_三年_v1.md](高中校园物语/剧情大纲_三年_v1.md)：v2 内容。36 格总表、三线里程碑（周墨 10 / 夏幸悠 9 / 温以宁 8）、随机事件池、5 个结局、变量表。这是现在的骨架权威
+- [策划方案_AIGAL_v1.md](高中校园物语/策划方案_AIGAL_v1.md)：立项稿。定位、设计原则、AI 分层、风险。回合结构已被大纲取代
+
+AI 三份：
+
+- [提示词_角色_v1.md](高中校园物语/提示词_角色_v1.md)：公共段、每个角色一段、差异的三层（锚点 / 可变 / 禁用）、怎么拼
+- [运行时预算_v1.md](高中校园物语/运行时预算_v1.md)：250/400 字、8 秒与 12 秒、每局 38 次调用、约 0.26 元、预取
+- [人物卡_v1.md](高中校园物语/人物卡_v1.md) / [.json](高中校园物语/人物卡_v1.json)：v1.1.2。说话方式、台词、行为反应、分拍状态，每条带出处，四级状态（✅ 明文依据 / 🟡 归纳 / ⬜ 待设计 / 🆕 拟定可改）
 
 原版策划，数值和剧本口径的来源：
 
@@ -126,30 +148,30 @@ game/
 
 - 数值只走 `stats.rpy` 的函数。剧情里不写 `$ study += 5`。
 - 剧本先写 markdown，标好 bg / bgm / sfx、选项和 Flag，再转 `.rpy`。
+- 里程碑拍喂提示词时只写事实清单，最多 3 条。把台词写进去，AI 只会改写措辞。
 - key 用英文小写 snake_case。改一个 key 得同时改三处：`变量命名规范_v1.md`、`stats.rpy`、回合事件表 §3 §5。
-- 回合内的选择变量写成 `t<回合号>_<含义>`，小写英文值，在 story 文件顶部 `default` 一次，不进 `flags`。`flags` 只放那 13 个正式 Flag。
+- 回合内的选择变量写成 `t<回合号>_<含义>`，小写英文值，在 story 文件顶部 `default` 一次，不进 `flags`。
 - AI 文本入库顺序是：`filter_text_tags(t, allow=())` → `[` 转成 `[[` → 最后替换 `{name}` → 截断。顺序反了，`{name}` 会被当标签一起清掉。
 - 玩家自填的主角名先 sanitize：1–8 字，不许带 `[` `{` `}` 和换行。名字里带这些字符等于二次注入。
-- 线程的 Job 对象不进 `store`，存档会报 `cannot pickle _thread.lock`。只存 int id，Job 表放模块级。12 秒硬超时，连挂 3 次这个会话就转离线；`config.skipping` 为真时只读缓存或模板，不发现场请求。
+- 线程的 Job 对象不进 `store`，存档会报 `cannot pickle _thread.lock`。只存 int id，Job 表放模块级。
 - 缓存 key 是 `schema_ver / prompt_ver / turn / beat_id / seed / choice_path`。`store.ai_log`（进存档）优先于 `persistent.ai_seen`（跨档，200KB 封顶）。
 - API key 不进日志：打码，请求体只留长度和前 200 字。
 - 主角名在代码里还是 `XXX` 占位。改造后由玩家开局输入，`Character` 和 `{name}` 用同一个变量，不再全仓替换。
 
 ## 还没定
 
-校名。文档里一律写「学校」，设定总表 §七 第 2 条还空着。主角默认名不算待定了，玩家开局自己输入。
+校名。文档里一律写「学校」，设定总表 §七 第 2 条还空着。
 
 立绘要几个表情和姿势、素材从哪来，没定。小游戏做选择题、实时操作还是只算数值，也没定。
 
-人物卡 v1.1 里标 🆕 的是「拟了、可改」，不算定稿：主角家（关外五金店、不管成绩）、周墨的琴级十级、初二停琴、节拍器来历。要改就改人物卡，别在剧本里绕开。
+人物卡里标 🆕 的是「拟了、可改」，不算定稿：主角家（关外五金店、不管成绩）、周墨的琴级十级、初二停琴、节拍器来历。要改就改人物卡，别在剧本里绕开。
 
-要你拍板的还剩这些，选项在[方案 §13](高中校园物语/策划方案_AIGAL_v1.md#13-待创立者决定)：
+要你拍板的还剩这些：
 
-1. 苏瑶旧稿的外观，已经按「压成 3 行 `look`、永不进 prompt」进了人物卡 v1.1，不同意可以退。
-2. 首版只接一家 OpenAI 兼容端点，还是内置多家预设？
-3. 随机化到什么程度：只换措辞，还是连事件也换？方案按「都换，骨架不换」写的。
-4. 每拍 3000 / 800 token 的预算能不能接受。
-5. AI 生成的文本进不进回滚录像。进就是能回看，代价是存档变大。
+1. 三条线是恋爱还是羁绊。13+ 下这决定 END 正文能写到哪。
+2. `mood` 字段留不留。现在没人读它：立绘和背景不做，界面也没接，它等于白花 token。要么接到名字牌或转场，要么从契约里删。
+3. AI 生成的文本进不进回滚录像。进就是能回看，代价是存档变大。
+4. 首版只接一家 OpenAI 兼容端点，还是内置多家预设？
 
 ## 许可
 
