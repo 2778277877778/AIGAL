@@ -1,4 +1,4 @@
-"""AIGAL · AI 输出契约（解析 / 清洗 / 校验）。
+﻿"""AIGAL · AI 输出契约（解析 / 清洗 / 校验）。
 
 纯标准库，不 import renpy。这样能用系统 Python 直接跑
 `tools/selftest_schema.py`，不用起游戏窗口。
@@ -27,7 +27,7 @@ import re
 ## 2：长度口径收到 400/120（运行时预算 v1），旧的 900 字缓存在新预算下不可用。
 ## 3：单行 120 → 100（美工实测正文框 31 字/行、4 行封顶 124，120 只剩 4 字余量）。
 SCHEMA_VER = 3
-PROMPT_VER = "角色_v1"
+PROMPT_VER = "角色_v1.1"
 
 
 def cache_prefix():
