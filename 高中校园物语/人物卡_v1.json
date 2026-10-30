@@ -4,6 +4,14 @@
   "generated_at": "2026-10-28",
   "commit": "79d4456",
   "human_readable": "人物卡_v1.md",
+  "speaker_counts": {
+    "total": 13,
+    "defined_in_characters_rpy": 8,
+    "defined_ids": ["mc", "zm", "zzb", "zeng", "stu_a", "stu_b", "bro", "inner"],
+    "pending_define": 5,
+    "pending_define_ids": ["xia", "kong", "x", "zm_dad", "zm_mom"],
+    "note": "不是全集一致；待补 id 用之前必须先 define，否则剧本报错"
+  },
   "status_legend": {
     "confirmed": "原仓库有明文依据",
     "derived": "从现有台词行为归纳，可改",
