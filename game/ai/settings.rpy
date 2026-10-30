@@ -212,16 +212,29 @@ init -2 python in aig:
         return LAST.get("text") or ""
 
     ## 版面硬边界（美工实测，1080p 基准）：正文 24px、框宽 744px、正文区高 142px，
-    ## 约每行 31 字、可放 4 行。80 字是「3 行安全」，124 字是物理上限。
-    ## Ren'Py 的 text 不裁切，超了直接压到画面上，测试也不会报错 —— 所以放在诊断页看。
-    LINE_MAX_SAFE = 80
+    ## 约每行 31 字、可放 4 行 —— 124 字是物理上限，超了 Ren'Py 不裁切，直接压到画面上。
+    ## 三道线各归各管，别混：
+    ##   80   提示词目标（3 行，留余量）       —— 本文件的告警线
+    ##   100  校验上限（schema_core.LINE_MAX）  —— 超了 ai_validate 会剔行
+    ##   124  版面物理上限
+    LINE_PROMPT_TARGET = 80
+    LINE_FLOOR_MAX = 124
+
+    def line_schema_max():
+        """校验上限以 schema_core 为准（Chief 定稿 100），取不到才退回 100。"""
+        mod = getattr(renpy.store, "aischema", None)
+        try:
+            return int(getattr(mod, "LINE_MAX", 100))
+        except Exception:
+            return 100
 
     def last_summary():
         """解析最近一次原始返回，给出与版面相关的事实。
 
         只读 JSON，不校验、不改状态（校验是 schema 的活）。解析不了就返回 ok=False。
         """
-        info = {"ok": False, "lines": 0, "longest": 0, "mood": "", "over": 0}
+        info = {"ok": False, "lines": 0, "longest": 0, "mood": "",
+                "over_target": 0, "over_max": 0}
         raw = LAST.get("text") or ""
         if not raw:
             return info
@@ -235,14 +248,17 @@ init -2 python in aig:
         info["mood"] = str(data.get("mood") or "")
         lines = data.get("lines") or []
         info["lines"] = len(lines)
+        lim = line_schema_max()
         for ln in lines:
             if not hasattr(ln, "get"):
                 continue
             n = len((ln.get("text") or "").strip())
             if n > info["longest"]:
                 info["longest"] = n
-            if n > LINE_MAX_SAFE:
-                info["over"] += 1
+            if n > LINE_PROMPT_TARGET:
+                info["over_target"] += 1
+            if n > lim:
+                info["over_max"] += 1
         return info
 
     def dbg(s):
@@ -348,7 +364,7 @@ init -2 python in aig:
         cancel(jid)
         return True
 
-    def wait_ui(jid, timeout=None, soft=True, blocking=False, tick=None):
+    def wait_ui(jid, timeout=None, soft=True, blocking=False, tick=None, beat_id=None, choice_path=""):
         """provider.wait 的界面版。除 blocking（测试）外，跟 wait 的可观察行为一致。
 
         blocking=True 时绝不碰界面：自测里没有交互循环，show_screen 没有意义。
@@ -357,7 +373,10 @@ init -2 python in aig:
         if not jid:
             return result(jid)
         budget = cfg_timeout() if timeout is None else float(timeout)
-        GEN.update(jid=jid, elapsed=0.0, shown=False, skipped=False)
+        ## beat_id / choice_path 只用于「这一拍正在生成」的浮层文案与「重跑这一拍」按钮，
+        ## 不影响等待本身；不传时浮层退化成通用文案。
+        GEN.update(jid=jid, elapsed=0.0, shown=False, skipped=False,
+                   beat=beat_id or "", choice_path=choice_path or "")
 
         def _composed(elapsed):
             if not blocking:
@@ -372,6 +391,8 @@ init -2 python in aig:
             if not blocking:
                 _gen_hide()
             GEN["jid"] = 0
+            GEN["beat"] = ""
+            GEN["choice_path"] = ""
 
         r_text = r.get("text") or ""
         LAST.update(jid=jid, state=r["state"], elapsed=r.get("elapsed") or 0.0,
@@ -380,7 +401,46 @@ init -2 python in aig:
         if GEN.get("skipped"):
             ## 玩家按了跳过：正文本来就不要了，记一笔好让诊断页说得清
             LAST["state"] = "skipped"
+
+        ## 降级横幅不在这里弹：wait_ui 返回的时候导演层还没落档（_sticky 在它之后调），
+        ## 在这儿判「有没有被钉住」必然早一拍。弹的时机只有一个——_sticky 落档之后。
         return r
+
+    ## 降级横幅：一出即定之后的当场出口 ########################################
+    ## 记录只有一份，在导演层（LAST_DEGRADED / degraded_now()）。这层不另存状态，
+    ## 否则两处必然漂：一处说「已钉住」，另一处说「没有」。
+    ## 这层只负责「什么时候弹」和「长什么样」。
+
+    def degraded_line():
+        why = degraded_now().get("reason") or ""
+        if why:
+            return "这一拍用的是本地文本（%s）。同一存档以后这一拍也是这段。" % why
+        return "这一拍用的是本地文本。同一存档以后这一拍也是这段。"
+
+    def degrade_banner():
+        """弹横幅。导演层 _sticky 落档之后叫一次 —— 七条降级路径（含校验不过）就都齐了。"""
+        try:
+            renpy.show_screen("ai_degraded")
+        except Exception:
+            return False
+        return True
+
+    def damp_degraded():
+        try:
+            renpy.hide_screen("ai_degraded")
+        except Exception:
+            pass
+        return True
+
+    def rerun_beat():
+        """玩家当场要求重跑：解除钉住（缓存 + 模板 + seed），再由 Rollback() 回到本拍开头。"""
+        ok = reroll_last()
+        damp_degraded()
+        if not ok:
+            renpy.notify("这一拍已经没有可重跑的记录了")
+            return False
+        renpy.notify("这一拍已解除钉住：回到本拍开头会重新生成")
+        return True
 
     ## 调试：假请求走一遍完整界面路径（诊断页按钮用）##########################
 
@@ -436,4 +496,23 @@ init -2 python in aig:
             ("beat 表 / ACTIONS", "%d 拍 / %d 个 action_key" % (len(beats), len(actions))),
             ("当前回合 / 进度", "第 %d 回合" % getattr(store, "turn", 0)),
         ]
+
+        ls = last_summary()
+        if ls["ok"]:
+            rows.append(("最近返回", "%d 行 · 最长 %d 字 · mood=%s"
+                         % (ls["lines"], ls["longest"], ls["mood"] or "（空）")))
+            rows.append(("行字数", "目标 %d / 校验 %d / 版面 %d"
+                         % (LINE_PROMPT_TARGET, line_schema_max(), LINE_FLOOR_MAX)))
+            if ls["over_max"]:
+                rows.append(("行字数告警", "%d 行超过校验上限，会被 schema 剔掉"
+                             % ls["over_max"]))
+            elif ls["over_target"]:
+                rows.append(("行字数告警", "%d 行超过提示词目标（还没到校验线）"
+                             % ls["over_target"]))
+            else:
+                rows.append(("行字数告警", "全部在目标以内"))
+        else:
+            rows.append(("最近返回", "还没有可解析的返回"))
+        sticky = getattr(store, "ai_template", None) or {}
+        rows.append(("钉住的拍", "%d 个（一出即定，要换只能 reroll）" % len(sticky)))
         return rows

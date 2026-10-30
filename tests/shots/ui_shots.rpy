@@ -54,6 +54,16 @@ testcase ui_shot:
     $ renpy.restart_interaction()
     $ aig.GEN.update(jid=0, elapsed=0.0, shown=False)
 
+    ## 降级横幅：一出即定之后玩家能看到的唯一出口
+    ## 摆一个「刚被钉住」的记录（正常是 _sticky 写的），免得起真请求
+    $ aig.LAST_DEGRADED.update(k="shot", beat="t2_piano", choice_path="", reason="等待超时")
+    $ aig.degrade_banner()
+    $ renpy.restart_interaction()
+    pause 0.6
+    screenshot "ai_degraded.png" max_pixel_difference 0.0005
+    $ aig.damp_degraded()
+    $ renpy.restart_interaction()
+
     $ _ui_restore(_s)
 
     ## 没有这行，跑完会停在主菜单等人点 —— 命令行这边看起来就是卡死

@@ -1,4 +1,4 @@
-﻿################################################################################
+################################################################################
 ## ai/testcases_ui.rpy —— settings / 生成中界面的自测（M3）
 ##
 ## 用法：.\dev.ps1 test ui_layer
@@ -37,6 +37,8 @@ init -1 python:
 
 testsuite ui_layer:
     setup:
+        ## 5s 的默认 case 超时会被上一轮的陈旧计时器误伤（详见群里那条观察），松到 15s。
+        $ _test.timeout = 15
         $ _UI_CFG0 = _ui_snap()
     teardown:
         ## 兜底：哪个 case 中途挂了也不会把配置留在半路上
@@ -119,13 +121,15 @@ testcase waitui_fake:
 
 ## 到点算超时（软的算取消）：两种都必须是「不是 done」，director 才会去取模板
 testcase waitui_timeout:
+    ## 假请求本身要挂满几秒，5s 的默认 case 超时不够
+    $ _test.timeout = 15
     $ _s = _ui_snap()
     $ aig.reset_circuit()
-    $ _j = aig.start_fake("timeout", delay=5.0)
+    $ _j = aig.start_fake("timeout", delay=0.6)
     $ _r = aig.wait_ui(_j, timeout=0.4, soft=True, blocking=True)
     $ _aig_test(_r["state"] != "done", "超时还报 done：%r" % (_r,))
     $ aig.reset_circuit()
-    $ _j2 = aig.start_fake("timeout", delay=5.0)
+    $ _j2 = aig.start_fake("timeout", delay=0.6)
     $ _r2 = aig.wait_ui(_j2, timeout=0.4, soft=False, blocking=True)
     $ _aig_test(_r2["state"] == "timeout", "软关掉时状态应是 timeout，实际 %r" % (_r2,))
     $ aig.reset_circuit()
@@ -134,9 +138,10 @@ testcase waitui_timeout:
 
 ## 跳过 = cancel = 降级，不是报错
 testcase skip_is_degrade:
+    $ _test.timeout = 15
     $ _s = _ui_snap()
     $ aig.reset_circuit()
-    $ _j = aig.start_fake("timeout", delay=5.0)
+    $ _j = aig.start_fake("timeout", delay=0.6)
     $ aig.GEN["jid"] = _j
     $ _aig_test(aig.skip_generating(), "skip_generating 没取消")
     $ _aig_test(aig.GEN["skipped"], "跳过没记下来")

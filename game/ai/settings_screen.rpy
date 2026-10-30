@@ -215,6 +215,17 @@ screen ai_debug():
                     text _k size gui.scale(17) color gui.idle_color xsize gui.scale(250)
                     text aig.dbg(_v) size gui.scale(17)
 
+            ## 版面告警：文本会变、版面不变。超了框就压到画面上，测试不会报。
+            $ _ls = aig.last_summary()
+            if _ls["over_max"] > 0:
+                text ("⚠ 最近一次返回有 %d 行超过校验上限 %d 字，schema 会把这些行剔掉；目标 %d 字，版面物理上限约 %d 字。" % (_ls["over_max"], aig.line_schema_max(), aig.LINE_PROMPT_TARGET, aig.LINE_FLOOR_MAX)):
+                    size gui.scale(17)
+                    color "#e0705a"
+            elif _ls["over_target"] > 0:
+                text ("● 最近一次返回有 %d 行超过提示词目标 %d 字（还没到校验线 %d，但已经 4 行边上了）。" % (_ls["over_target"], aig.LINE_PROMPT_TARGET, aig.line_schema_max())):
+                    size gui.scale(17)
+                    color "#e0a04a"
+
             null height gui.scale(6)
 
             text "假请求（不联网，走 start_fake，用来验收生成中界面和降级路径）":
@@ -279,10 +290,40 @@ screen ai_generating():
             text ("已等 %.1f 秒" % aig.GEN["elapsed"]):
                 size gui.scale(18)
                 color gui.idle_color
-            text "不想等就跳过：这一拍改用本地模板，数值和进度都不受影响。":
+            text "跳过这一拍会用本地文本；同一存档以后这一拍也是这段（一出即定），要换只能显式重跑。":
                 size gui.scale(17)
                 color gui.idle_color
 
             hbox:
                 spacing gui.scale(10)
                 textbutton "跳过（Esc）" action Function(aig.skip_generating)
+
+
+## 降级横幅 ####################################################################
+## 「一出即定」是不可逆的，所以出口必须在降级那一刻出现：一条不挡对白的横幅，
+## 15 秒后自己收；「重跑这一拍」= 解除钉住 + 回退到本拍开头，重进时重新生成。
+
+screen ai_degraded():
+
+    zorder 150
+
+    timer 15.0 action Hide("ai_degraded")
+
+    frame:
+        background "#12161af2"
+        padding (gui.scale(20), gui.scale(12))
+        xalign 0.5
+        yoffset gui.scale(24)
+
+        vbox:
+            spacing gui.scale(8)
+
+            text aig.degraded_line() size gui.scale(17) color "#e0a04a"
+
+            hbox:
+                spacing gui.scale(10)
+                if aig.ready():
+                    textbutton "重跑这一拍" action [Function(aig.rerun_beat), Rollback()]
+                else:
+                    textbutton "去填 API key" action [Function(aig.damp_degraded), ShowMenu("ai_setup")]
+                textbutton "知道了" action Hide("ai_degraded")
