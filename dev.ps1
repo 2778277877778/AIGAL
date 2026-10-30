@@ -11,7 +11,7 @@
 #>
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('run', 'lint', 'compile', 'test', 'distribute')]
+    [ValidateSet('run', 'lint', 'compile', 'test', 'shots', 'distribute')]
     [string]$Command = 'lint',
 
     # test 用：只跑某个 testcase
@@ -56,6 +56,72 @@ switch ($Command) {
     'run' {
         # 沙箱里跑不了 %APPDATA% 时，调用方自己设 $env:RENPY_PATH_TO_SAVES
         & (Join-Path $sdk 'renpy.exe') $repo
+    }
+    'shots' {
+        ## 界面截图回归。这份用例平时放在 tests\shots\ 下 —— 不在 game\ 里，
+        ## Ren'Py 不会加载，默认链绝不会被它拖红（基准图跟 DPI / 字体绑死，
+        ## 换台机器就飘）。只有这条命令才临时拷进 game\ 跑一次，跑完连 .rpyc 一起删。
+        ##
+        ## .\dev.ps1 shots            比对
+        ## .\dev.ps1 shots overwrite  重写基准图（改过版式必须跑一次）
+        ##
+        ## 为什么用 Start-Process 轮询：Ren'Py 的测试跑完不会自己退，会停回主菜单；
+        ## 直接 & 调用会一直挂着。所以盯着输出文件等 Status 行，见到就掐掉进程。
+        $src = Join-Path $repo 'tests\shots\ui_shots.rpy'
+        $dst = Join-Path $repo 'game\__shots_ui.rpy'
+        $out = Join-Path $env:TEMP 'aigal_shots.log'
+
+        if (-not (Test-Path $src)) {
+            Write-Host "找不到 $src" -ForegroundColor Red
+            exit 1
+        }
+
+        Remove-Item $out -Force -ErrorAction SilentlyContinue
+        Copy-Item $src $dst -Force
+
+        try {
+            $argList = @((Join-Path $sdk 'renpy.py'), $repo, 'test', 'ui_shot')
+            if ($Name -eq 'overwrite') {
+                $argList += '--overwrite-screenshots'
+                Write-Host "重写基准图：tests\screenshots\*.png" -ForegroundColor Yellow
+            }
+
+            $proc = Start-Process -FilePath $py -ArgumentList $argList -WindowStyle Hidden -PassThru `
+                -RedirectStandardOutput $out -RedirectStandardError ($out + '.err')
+
+            $deadline = (Get-Date).AddSeconds(180)
+            while (-not $proc.HasExited -and (Get-Date) -lt $deadline) {
+                Start-Sleep -Milliseconds 300
+                if ((Test-Path $out) -and (Select-String -Path $out -Pattern 'Status: (PASSED|FAILED|SKIPPED)' -Quiet)) {
+                    Start-Sleep -Milliseconds 500
+                    break
+                }
+            }
+            if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
+
+            ## 只印到 Status 行为止：后面那段是 exit 触发的 QuitException 收尾，
+            ## 每次印出来会让人以为挂了。
+            if (Test-Path $out) {
+                foreach ($line in (Get-Content $out -Encoding UTF8)) {
+                    Write-Host $line
+                    if ($line -match 'Status: (PASSED|FAILED|SKIPPED)') { break }
+                }
+            }
+
+            $report = if (Test-Path $out) { Get-Content $out -Encoding UTF8 -Raw } else { '' }
+            if ($report -match 'Status: PASSED') { exit 0 }
+
+            Write-Host ""
+            Write-Host "!! 截图回归失败。差异图在 tests\screenshots\*.new.png / *.diff.png；改了版式就跑 .\dev.ps1 shots overwrite" -ForegroundColor Red
+            ($report -split "`n") | Select-String -Pattern 'pixel difference|size mismatch|Status:|Error' |
+                Select-Object -First 6 | ForEach-Object { Write-Host ("   " + $_) -ForegroundColor Red }
+            exit 1
+        }
+        finally {
+            ## .rpy 和 .rpyc 都要删：只剩 .rpyc 的脚本 Ren'Py 照样加载
+            Remove-Item $dst -Force -ErrorAction SilentlyContinue
+            Remove-Item ($dst + 'c') -Force -ErrorAction SilentlyContinue
+        }
     }
     'distribute' {
         & $py (Join-Path $sdk 'renpy.py') $repo distribute

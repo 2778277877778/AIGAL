@@ -760,6 +760,15 @@ screen preferences():
                     textbutton _("After Choices") action Preference("after choices", "toggle")
                     textbutton _("Transitions") action InvertSelected(Preference("transitions", "toggle"))
 
+                ## AI 接口（M3）：key、base_url、temperature 这些在子页面里，
+                ## 不塞进设置页的一屏，免得设置页变成表单。
+                vbox:
+                    label _("AI") style "pref_label"
+                    vbox:
+                        spacing gui.pref_button_spacing
+                        textbutton _("接口设置") action ShowMenu("ai_setup")
+                        textbutton _("连接诊断") action ShowMenu("ai_debug")
+
                 ## Additional vboxes of type "radio_pref" or "check_pref" can be added here, to
                 ## add additional creator-defined preferences.
 
