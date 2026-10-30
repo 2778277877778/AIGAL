@@ -49,6 +49,19 @@ init -3 python in aig:
         "t2_free":        "十月剩下的自由时间。",
     }
 
+    ## 剧情拍自己的分支 id —— 不是 ACTIONS 里的行动。
+    ## 选项「说破 / 装作没看见」这种不消耗 AP，所以不能塞进 ACTIONS，但同样要白名单：
+    ## 只允许本拍声明过的几个，返回值交给剧本 if/else 分支。
+    ## 没登记的拍默认给全部 ACTIONS（自由时段/与行动有关的拍）。
+    BEAT_CHOICES = {
+        "t2_piano": ("reveal", "ignore"),
+        "t2_call": ("stay", "leave", "water_only"),
+    }
+
+    def choices_for(beat_id):
+        """本拍允许的 choice id。None = 用 ACTIONS 全集。"""
+        return BEAT_CHOICES.get(beat_id)
+
     def speakers_for(beat_id, turn=None):
         if beat_id in BEAT_SPEAKERS:
             return BEAT_SPEAKERS[beat_id]
@@ -79,7 +92,7 @@ init -3 python in aig:
         parts.append("已发生的事标：%s" % ("、".join(flags) if flags else "（无）"))
         return "；".join(parts)
 
-    def build_messages(beat_id, turn, state, ending=False):
+    def build_messages(beat_id, turn, state, ending=False, extra=""):
         """按 §0 的顺序拼出 chat 消息。"""
         system = "\n\n".join(
             PARAS.get(k, "") for k in ("P_A", "P_B", "P_C") if PARAS.get(k)
@@ -90,6 +103,9 @@ init -3 python in aig:
         usr = []
         usr.append("【本拍场景】%s" % scene_for(beat_id, turn))
         usr.append("【本拍数值摘要】%s" % state_line(state))
+        if extra:
+            ## 本拍的既定事实：月考过没过、玩家上一拍选了什么。这是叙述前提，不是可选项。
+            usr.append("【本拍补充】%s" % extra)
         usr.append("【本拍可用 speaker】%s" % "、".join(spk))
         actions = state.get("actions") or ()
         usr.append("【本拍可用 action_key】%s"

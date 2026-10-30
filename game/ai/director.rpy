@@ -78,8 +78,13 @@ init -1 python in aig:
         }
         return start_http(url, headers, body, tag="chat")
 
-    def _messages(beat_id, turn, ending):
-        return build_messages(beat_id, turn, _state(), ending=ending)
+    def _messages(beat_id, turn, ending, extra=""):
+        st = _state()
+        c = choices_for(beat_id)
+        if c:
+            ## 剧情拍的选项是分支 id，不是 ACTIONS；提示词里给的和校验用的必须是同一份
+            st["actions"] = c
+        return build_messages(beat_id, turn, st, ending=ending, extra=extra)
 
     def _pack(v, ctx, source, notes=None):
         return {
@@ -105,11 +110,14 @@ init -1 python in aig:
         }
 
     def _ctx(beat_id, expect_choices=None):
-        return renpy.store.ai_ctx(
-            beat_id,
-            speakers=speakers_for(beat_id),
-            expect_choices=expect_choices,
-        )
+        kw = {
+            "speakers": speakers_for(beat_id),
+            "expect_choices": expect_choices,
+        }
+        c = choices_for(beat_id)
+        if c:
+            kw["actions"] = c
+        return renpy.store.ai_ctx(beat_id, **kw)
 
     def _fake_ctx(beat_id):
         """beat 没登记时也要能返回一个能用的 ctx（不然剧本直接崩）。"""
@@ -121,7 +129,7 @@ init -1 python in aig:
 
     ## 主入口 ####################################################################
 
-    def run(beat_id, choice_path="", fake=None, expect_choices=None, blocking=False):
+    def run(beat_id, choice_path="", fake=None, expect_choices=None, blocking=False, extra=""):
         """取这一拍的内容。返回 {source, lines, choices, flags, mood, notes, ctx}。
 
         source 只会是 cache / prefetch / ai / ai_retry / template 之一。
@@ -162,7 +170,7 @@ init -1 python in aig:
             return _template_pack(beat_id, ctx, "offline_or_skipping")
 
         ending = (b.get("scope") == "ending")
-        jid = _dispatch(_messages(beat_id, turn, ending), fake)
+        jid = _dispatch(_messages(beat_id, turn, ending, extra), fake)
         if not jid:
             return _template_pack(beat_id, ctx, "not_sent")
 
@@ -177,7 +185,7 @@ init -1 python in aig:
             return _pack(v, ctx, "ai")
 
         ## 4. 校验失败：重试一次（只补一句约束，不重写整段 prompt）
-        msgs = _messages(beat_id, turn, ending)
+        msgs = _messages(beat_id, turn, ending, extra)
         msgs.append({"role": "user", "content": RETRY_SUFFIX})
         jid2 = _dispatch(msgs, fake)
         if not jid2:
@@ -192,7 +200,7 @@ init -1 python in aig:
             return _pack(v2, ctx, "ai_retry")
         return _template_pack(beat_id, ctx, "invalid_twice")
 
-    def prefetch(beat_id, choice_path="", fake=None):
+    def prefetch(beat_id, choice_path="", fake=None, extra=""):
         """后台买下一拍。返回 job id（0 = 没发，调用方不用管）。"""
         ok, why = renpy.store.ai_beat_ok(beat_id)
         if not ok:
@@ -210,7 +218,7 @@ init -1 python in aig:
         if k in PENDING:
             return 0                        # 已经在飞
 
-        jid = _dispatch(_messages(beat_id, b["turn"], b.get("scope") == "ending"), fake)
+        jid = _dispatch(_messages(beat_id, b["turn"], b.get("scope") == "ending", extra), fake)
         if jid:
             PENDING[k] = {"jid": jid, "beat": beat_id, "choice_path": choice_path}
         return jid
@@ -225,26 +233,30 @@ init -1 python in aig:
 
 
 ## 剧本层入口 ####################################################################
-## call ai_play("t2_piano")            —— 只演台词，不给选项
-## call ai_menu("t2_piano")            —— 演完台词给选项，返回 action_key
-## call ai_prefetch("t2_gala")         —— 只预取，不等
+## call ai_play("t2_piano")                 —— 只演台词，不给选项
+## call ai_menu("t2_piano")                 —— 演完台词给选项，返回值从 _return 取
+## call ai_prefetch("t2_gala")              —— 只预取，不等
+##
+## extra 是本拍的既定事实（月考过没过、上一拍选了什么）。它不参与缓存 key，
+## 所以凡是 extra 会变的分支，一定要把区分写进 choice_path，不然两个版本会撞缓存。
 
-label ai_play(beat_id, choice_path=""):
-    $ _ai_d = aig.run(beat_id, choice_path)
+label ai_play(beat_id, choice_path="", extra=""):
+    $ _ai_d = aig.run(beat_id, choice_path, expect_choices=False, extra=extra)
     $ ai_say(_ai_d["lines"])
     $ ai_apply_flags(_ai_d["flags"], _ai_d["ctx"])
     return _ai_d
 
 
-label ai_menu(beat_id, choice_path=""):
-    $ _ai_d = aig.run(beat_id, choice_path)
+label ai_menu(beat_id, choice_path="", extra=""):
+    $ _ai_d = aig.run(beat_id, choice_path, expect_choices=True, extra=extra)
     $ ai_say(_ai_d["lines"])
     $ ai_apply_flags(_ai_d["flags"], _ai_d["ctx"])
-    $ _ai_items = [(c["text"], c["action_key"]) for c in _ai_d["choices"]] or [("（继续）", None)]
+    ## 兜底那一项必须给可点的值：display_menu 里 value=None 是标题，不是选项。
+    $ _ai_items = [(c["text"], c["action_key"]) for c in _ai_d["choices"]] or [("（继续）", "")]
     $ _ai_pick = renpy.display_menu(_ai_items)
     return _ai_pick
 
 
-label ai_prefetch(beat_id, choice_path=""):
-    $ _ai_jid = aig.prefetch(beat_id, choice_path)
+label ai_prefetch(beat_id, choice_path="", extra=""):
+    $ _ai_jid = aig.prefetch(beat_id, choice_path, extra=extra)
     return _ai_jid

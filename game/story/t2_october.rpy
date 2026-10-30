@@ -1,14 +1,15 @@
 ################################################################################
-## T2 十月「藏」—— 骨架，只有结构、行动入口和 Flag 判定，台词全部是占位
+## T2 十月「藏」—— 骨架 + AI 演出
 ##
-## 依据《回合事件表_v3.md》§2 的 T2：
-##   月初 迎新晚会筹备（周墨拒绝上台）
-##   固定 旧琴房（他撞见她弹琴）      → heard_piano
-##   固定 迎新晚会（放录音伴奏）      → 只在台词里回指
-##   固定 月考 + 楼梯间电话           → heard_call；月考线 35
-##   自由 + 艺术楼（T2 起解锁）
+## 数值 / Flag / 结局判定一律不动，AI 只负责场景与台词的文字部分。
+## 三个调用：
+##   call ai_play("t2_welcome")   只演台词（固定拍，不给选项）
+##   call ai_menu("t2_piano")     演完给选项，选中的分支 id 从 _return 取
 ##
-## 台词回来后只替换方括号里的占位行和选项文字，不动结构。
+## 预取按《运行时预算_v1.md》§2.1 的三条触发点放：
+##   t2_piano 的选项点下之后 → 预取 t2_gala（这时才确定下一拍的 key 成不成立）
+##   t2_call  的选项点下之后 → 预取 t2_free（自由时段 choice_path 恒空，窗口最长）
+## 预取是后台跑的，不阻塞；取到缓存就命中，取不到就现场买或降级，剧本不用管。
 ################################################################################
 
 image bg art_backstage   = Solid("#1a1d22")
@@ -17,62 +18,50 @@ image bg stairwell_night = Solid("#15191e")
 
 default t2_monthly_pass = False      # 第一次月考是否过线（线 35）
 default t2_call = ""                 # stay / leave / water_only，楼梯间那三种处理
+default t2_piano_choice = ""         # reveal / ignore，旧琴房那两种反应
+default t2_exam_key = ""             # 月考那拍的变体 key（pass / fail）
+default t2_exam_note = ""            # 交给 AI 的既定事实，不影响判定
 
 label t2_october:
 
     $ start_month(2)
 
-    ## 月初 · 迎新晚会筹备
+    ## 月初 · 迎新晚会筹备（周墨拒绝上台）
     scene bg classroom_day
-    "〔T2-1 月初 · 迎新晚会筹备 · 台词待补〕"
-    "〔合唱队缺伴奏，周墨拒绝上台 · 台词待补〕"
+    call ai_play("t2_welcome")
 
-    ## 固定 · 旧琴房
+    ## 固定 · 旧琴房（他撞见她弹琴）
     scene bg art_backstage
-    "〔T2-2 旧琴房 · 他推门撞见她弹琴 · 台词待补〕"
+    call ai_menu("t2_piano")
+    $ t2_piano_choice = _return or "reveal"
 
-    menu:
-        "〔待补〕说破伴奏是她弹的":
-            "〔T2-2 选项 A · 台词待补〕"
+    # 选项点下的这一瞬间：下一拍的 choice_path 定了，key 才成立 —— 预取放这里
+    $ aig.prefetch("t2_gala")
 
-        "〔待补〕装作没看见":
-            "〔T2-2 选项 B · 台词待补〕"
-
-    # 两种反应都是「听见了琴」，Flag 只看这一点；台词差别留到写台词时分支
+    # 两种反应都是「听见了琴」，Flag 只看这一点；分支文本留给后面的拍回指
     $ set_flag("heard_piano")
 
-    ## 固定 · 迎新晚会
+    ## 固定 · 迎新晚会（放录音伴奏，主持人夸伴奏）
     scene bg auditorium_night
-    "〔T2-3 迎新晚会 · 放录音伴奏，主持人夸伴奏 · 台词待补〕"
-    "〔他差点说漏嘴，被踩脚 · 台词待补〕"
+    call ai_play("t2_gala")
 
-    ## 固定 · 月考
+    ## 固定 · 月考 —— 数值判定不动，AI 只写「过」或「没过」那一版
     scene bg classroom_day
     $ exam_roll()
     $ t2_monthly_pass = exam_pass("monthly")
-    if t2_monthly_pass:
-        "〔T2-4 第一次月考 · 过线 35 · 台词待补〕"
-    else:
-        "〔T2-4 第一次月考 · 没过线 35 · 台词待补〕"
+    $ t2_exam_key = "pass" if t2_monthly_pass else "fail"
+    $ t2_exam_note = "这次月考" + ("过了 35 分线。" if t2_monthly_pass else "没过 35 分线。")
+    call ai_play("t2_exam", t2_exam_key, t2_exam_note)
 
-    ## 固定 · 楼梯间电话
+    ## 固定 · 楼梯间电话（父亲打电话问数学为什么没满分）
     scene bg stairwell_night
-    "〔T2-4 楼梯间 · 父亲打电话问数学为什么没满分 · 台词待补〕"
+    call ai_menu("t2_call")
+    $ t2_call = _return or "stay"
 
-    menu:
-        "〔待补〕过去放一瓶水":
-            $ t2_call = "stay"
-            "〔T2-4 选项 A · 台词待补〕"
+    # 自由时段跟着就来，choice_path 恒空 —— 现在预取，窗口最长
+    $ aig.prefetch("t2_free")
 
-        "〔待补〕走开":
-            $ t2_call = "leave"
-            "〔T2-4 选项 B · 台词待补〕"
-
-        "〔待补〕放水就走，不留话":
-            $ t2_call = "water_only"
-            "〔T2-4 选项 C · 台词待补〕"
-
-    # 他听见了这通电话，三种处理都算；具体怎么处理记在 t2_call，台词回来再读
+    # 他听见了这通电话，三种处理都算；具体怎么处理记在 t2_call
     $ set_flag("heard_call")
 
     ## 自由行动（T2 起艺术楼解锁）
@@ -80,6 +69,6 @@ label t2_october:
 
     ## 月末结算
     scene bg dorm_402
-    "〔T2 月末结算 · 学习 [study]，压力 [stress]，体力 [stamina]，钱 [money] · 台词待补〕"
+    "〔T2 月末结算 · 学习 [study]，压力 [stress]，体力 [stamina]，钱 [money]〕"
     "〔T2 结束 · T3「揭」待写〕"
     return

@@ -44,7 +44,7 @@ init -6 python in aig:
     }
 
     FAKE_MODES = (
-        "ok", "badjson", "empty_choices", "long_text",
+        "ok", "narrative", "badjson", "empty_choices", "long_text",
         "inject_tags", "inject_interp", "timeout", "http500",
     )
 
@@ -227,6 +227,14 @@ init -6 python in aig:
 
     _FAKE_BODIES = {
         "ok": FAKE_BODY_OK,
+        ## 剧情拍：选项是拍内分支 id（t2_piano 的 reveal / ignore），不是 ACTIONS
+        "narrative": (
+            '{"lines":[{"speaker":"zm","text":"琴声停了。他把手放在琴盖上，没有回头。"},'
+            '{"speaker":"inner","text":"门缝里的光落在他背上。"}],'
+            '"choices":[{"text":"说破伴奏是你弹的","action_key":"reveal"},'
+            '{"text":"装作没看见","action_key":"ignore"}],'
+            '"flags":[],"mood":"tense"}'
+        ),
         "slow": FAKE_BODY_OK,
         "badjson": "好的，这是你要的台词：他把琴谱翻到最后一页。",
         "empty_choices": (

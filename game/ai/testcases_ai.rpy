@@ -167,6 +167,19 @@ testcase pipeline_template:
     $ _aig_test(len(_d["lines"]) >= 1, "模板没有台词")
 
 
+## 剧情拍的选项走「拍内分支 id 白名单」，不是 ACTIONS 全集
+testcase pipeline_narrative:
+    $ aig.reset_circuit()
+    $ aig.clear_pending()
+    $ _saved_turn = store.turn
+    $ store.turn = 2
+    $ _d = aig.run("t2_piano", fake="narrative", blocking=True)
+    $ store.turn = _saved_turn
+    $ _aig_test(_d["source"] == "ai", "应走 ai，实际 %r（notes=%r）" % (_d["source"], _d["notes"]))
+    $ _keys = sorted(c["action_key"] for c in _d["choices"])
+    $ _aig_test(_keys == ["ignore", "reveal"], "分支 id 不对：%r" % (_keys,))
+
+
 ## 提示词数据确实编译进来了：公共四段 + 周墨八拍 + 每个 speaker 一段
 testcase prompt_data:
     $ _aig_test(len(aig.PARAS) >= 25, "段落数不对：%d" % len(aig.PARAS))
