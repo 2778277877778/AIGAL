@@ -241,3 +241,57 @@ testcase relation_logic:
         finally:
             (store.rel_zm, store.rel_xia, store.rel_x, store.route, store.route_done,
              store.ms_done, store.flags, store.turn, store.stress, store.weekend_used) = _saved
+
+
+## 只读轨迹（systems/trace.rpy）：beat 顺序 / Flag 集合 / 结局 id，三样可逐字比对。
+## 「变／不变」的五条断言都用 trace_digest()，别再各自遍历。
+testcase trace_logic:
+    pause .2
+
+    python:
+        _saved_flags = store.flags
+        try:
+            trace_reset()
+            trace_beat("t2_welcome")
+            trace_beat("t2_piano")
+            set_flag("heard_piano")
+            trace_ending("end_b")
+            _d1 = trace_digest()
+            assert _d1 == (("t2_welcome", "t2_piano"), ("heard_piano",), "end_b"), _d1
+
+            ## 重复置位不重复记；轨迹里不含台词/来源字段
+            set_flag("heard_piano")
+            assert trace_digest() == _d1
+            assert "lines" not in str(_d1) and "template" not in str(_d1)
+
+            ## 清空后回到空轨迹
+            trace_reset()
+            assert trace_digest() == ((), (), "")
+        finally:
+            store.flags = _saved_flags
+
+
+## 只读回放（systems/replay.rpy）：给 Chief 五条断言里的 1 / 3 / 5 共用。
+## 纯函数，不碰 store、不碰 provider，所以有 key / 没 key 的结果必然同构。
+testcase replay_logic:
+    pause .2
+
+    python:
+        _p = {"t8_subject": "support", "t8_form": "same", "confession": "yes"}
+        _a = replay_trace(_p, study=80, stress=60)
+        _b = replay_trace(_p, study=80, stress=60)
+        assert _a == _b, "同一条选择轨迹两次回放不一致"
+        assert _a[2] == "true", "TRUE 条件应成立：%r" % (_a,)
+        for _beat in _a[0]:
+            assert _beat in AI_BEATS, "回放里有未登记的拍：%s" % _beat
+        assert len(_a[0]) == len(set(_a[0])), "回放里 beat 重复"
+
+        assert replay_trace({}, study=30, stress=10)[2] == "end_a", "缺 subject_support 应走 END A"
+        assert replay_trace({"t8_subject": "support"}, 30, 10)[2] == "end_b", "缺 same_subject 应走 END B"
+        assert replay_trace({"t8_subject": "support", "t8_form": "same"}, 60, 10)[2] == "end_c", "栽在数值应走 END C"
+
+        try:
+            replay_trace({"t8_nope": "x"})
+            assert False, "未知选择点没抛"
+        except Exception:
+            pass
