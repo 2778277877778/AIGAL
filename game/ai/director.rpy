@@ -146,10 +146,13 @@ init -1 python in aig:
                              choice_path=_LAST_RUN["choice_path"], reason=reason)
         ## 横幅也走这条：invalid_twice 是 wait 之后才判的，wait_ui 里看不见，
         ## 少了这一句，校验不过的降级就不会弹横幅。
+        ## 注意 degrade_banner() 是**无参**的：拍和理由都已经在 LAST_DEGRADED 里，
+        ## 它只负责 show_screen。之前这里传过三个参数，被下面的 except 吞掉，
+        ## 结果横幅一直不弹 —— 所以异常改成记日志，不再静默。
         try:
-            degrade_banner(_LAST_RUN["beat"], _LAST_RUN["choice_path"], reason)
-        except Exception:
-            pass
+            degrade_banner()
+        except Exception as e:
+            renpy.log("[AIGAL] degrade_banner 失败：%r" % (e,))
         return pack
 
     def reroll_last():

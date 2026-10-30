@@ -58,6 +58,9 @@ label t4_december:
     scene bg gate_winter
     call ai_play("t4_father")
 
+    ## 随机事件槽（60% 命中，抽不中就是纯自由行动）
+    call event_slot
+
     ## 自由行动
     call free_actions
 

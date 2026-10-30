@@ -71,6 +71,9 @@ label t8_june:
         "什么也没说。":
             $ t8_confess = "no"
 
+    ## 随机事件槽（60% 命中，抽不中就是纯自由行动）
+    call event_slot
+
     ## 自由行动（T8 只有 2 AP）
     call free_actions
 

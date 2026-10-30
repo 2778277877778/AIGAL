@@ -74,6 +74,9 @@ label t2_october:
     # 他听见了这通电话，三种处理都算；具体怎么处理记在 t2_call
     $ set_flag("heard_call")
 
+    ## 随机事件槽（60% 命中，抽不中就是纯自由行动）
+    call event_slot
+
     ## 自由行动（T2 起艺术楼解锁）
     call free_actions
 

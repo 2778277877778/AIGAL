@@ -37,8 +37,10 @@ init -1 python:
 
 testsuite ui_layer:
     setup:
-        ## 5s 的默认 case 超时会被上一轮的陈旧计时器误伤（详见群里那条观察），松到 15s。
-        $ _test.timeout = 15
+        ## 20s，跟 testsuite global 的 setup 保持一致。别在这里写更小的值：
+        ## 那个计时器统计的是「多久没推进」，跨用例累积，本套件把它调小等于
+        ## 只给这一套件更严的判罚（详见群里那条 SDK 证据）。
+        $ _test.timeout = 20
         $ _UI_CFG0 = _ui_snap()
     teardown:
         ## 兜底：哪个 case 中途挂了也不会把配置留在半路上
@@ -121,8 +123,6 @@ testcase waitui_fake:
 
 ## 到点算超时（软的算取消）：两种都必须是「不是 done」，director 才会去取模板
 testcase waitui_timeout:
-    ## 假请求本身要挂满几秒，5s 的默认 case 超时不够
-    $ _test.timeout = 15
     $ _s = _ui_snap()
     $ aig.reset_circuit()
     $ _j = aig.start_fake("timeout", delay=0.6)
@@ -138,7 +138,6 @@ testcase waitui_timeout:
 
 ## 跳过 = cancel = 降级，不是报错
 testcase skip_is_degrade:
-    $ _test.timeout = 15
     $ _s = _ui_snap()
     $ aig.reset_circuit()
     $ _j = aig.start_fake("timeout", delay=0.6)

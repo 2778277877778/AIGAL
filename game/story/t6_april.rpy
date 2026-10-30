@@ -44,6 +44,9 @@ label t6_april:
     else:
         "我帮着搬了两趟椅子，没在表上签字。"
 
+    ## 随机事件槽（60% 命中，抽不中就是纯自由行动）
+    call event_slot
+
     ## 自由行动
     call free_actions
 

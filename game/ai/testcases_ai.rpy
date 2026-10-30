@@ -287,3 +287,14 @@ testcase reroll_last_works:
     $ _aig_test(aig.reroll_last() is False, "没东西可重跑时应返回 False")
     $ store.ai_template = {}
     $ aig.cfg()["api_key"] = ""
+## 横幅必须真的弹出来：签名变了却还在传参的话，会被 except 吞掉、静默不弹
+## 直接调 _sticky 而不是走 run()：这条只验「落档后有没有 show_screen」，
+## 走 run() 会顺带产生一次交互，跟用例超时计时器互相干扰。
+testcase degrade_banner_shown:
+    $ aig.damp_degraded()
+    $ store.ai_template = {}
+    $ aig._sticky("k-banner-test", "no_api_key", {"lines": [], "choices": [], "mood": ""})
+    $ _aig_test(renpy.get_screen("ai_degraded") is not None, "降级后横幅没弹出来")
+    $ _aig_test(aig.degraded_now().get("reason") == "no_api_key", "横幅状态没记对理由")
+    $ aig.damp_degraded()
+    $ store.ai_template = {}

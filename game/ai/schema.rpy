@@ -82,11 +82,59 @@ init -1 python:
         "t8_end_a":       dict(turn=8, flags=(), expect_choices=False, scope="ending"),
         "t8_end_b":       dict(turn=8, flags=(), expect_choices=False, scope="ending"),
         "t8_end_c":       dict(turn=8, flags=(), expect_choices=False, scope="ending"),
+
+        ## ── T9–T35 主线拍（《剧情大纲_三年_v1.md》§1.2 登记表，21 个）──────
+        ## 目前只有 id 与回合；台词/细节等 story 与 §2.7 跟上后再长。
+        "t9_injury":      dict(turn=9,  flags=(), expect_choices=False),
+        "t10_subject":    dict(turn=10, flags=(), expect_choices=False),
+        "t13_artfair":    dict(turn=13, flags=(), expect_choices=False),
+        "t14_coach":      dict(turn=14, flags=(), expect_choices=False),
+        "t15_ask":        dict(turn=15, flags=(), expect_choices=False),
+        "t16_mother":     dict(turn=16, flags=(), expect_choices=False),
+        "t17_parent":     dict(turn=17, flags=(), expect_choices=False),
+        "t18_half":       dict(turn=18, flags=(), expect_choices=False),
+        "t19_club":       dict(turn=19, flags=(), expect_choices=False),
+        "t20_quit":       dict(turn=20, flags=(), expect_choices=False),
+        "t21_transfer":   dict(turn=21, flags=(), expect_choices=False),
+        "t25_hall":       dict(turn=25, flags=(), expect_choices=False),
+        "t26_entry":      dict(turn=26, flags=(), expect_choices=False),
+        "t27_watch":      dict(turn=27, flags=(), expect_choices=False),
+        "t28_form":       dict(turn=28, flags=(), expect_choices=False),
+        "t29_exam":       dict(turn=29, flags=(), expect_choices=False),
+        "t30_offer":      dict(turn=30, flags=(), expect_choices=False),
+        "t32_choice":     dict(turn=32, flags=(), expect_choices=False),
+        "t33_last":       dict(turn=33, flags=(), expect_choices=False),
+        "t34_gaokao":     dict(turn=34, flags=(), expect_choices=False, scope="ending"),
+        "t35_score":      dict(turn=35, flags=(), expect_choices=False, scope="ending"),
+
+        ## ── 随机事件拍（§3.2，20 个）──────────────────────────────────────
+        ## turns 是允许出现的回合集合（事件有月窗口，不是单回合拍）。
+        ## ai_beat_ok 先看 turns，没有再比 turn；prefetch_first 用 tN_ 前缀，不会误取 e_*。
+        "e_welcome":      dict(turn=1,  turns=(1, 2),          flags=(), expect_choices=False),
+        "e_sports_aut":   dict(turn=2,  turns=(2,),            flags=(), expect_choices=False),
+        "e_open_day":     dict(turn=1,  turns=(1, 2, 3),       flags=(), expect_choices=False),
+        "e_outing":       dict(turn=2,  turns=(2, 3),          flags=(), expect_choices=False),
+        "e_parent1":      dict(turn=3,  turns=(3,),            flags=(), expect_choices=False),
+        "e_newyear":      dict(turn=4,  turns=(4,),            flags=(), expect_choices=False),
+        "e_spring_fest":  dict(turn=6,  turns=(6,),            flags=(), expect_choices=False),
+        "e_placement":    dict(turn=1,  turns=(1,),            flags=(), expect_choices=False),
+        "e_culture":      dict(turn=15, turns=(15,),           flags=(), expect_choices=False),
+        "e_sports_spring": dict(turn=20, turns=(20,),          flags=(), expect_choices=False),
+        "e_study_tour":   dict(turn=21, turns=(21,),           flags=(), expect_choices=False),
+        "e_club_fair":    dict(turn=13, turns=(13, 14),        flags=(), expect_choices=False),
+        "e_chorus":       dict(turn=20, turns=(20, 21),        flags=(), expect_choices=False),
+        "e_transfer":     dict(turn=13, turns=tuple(range(13, 23)), flags=(), expect_choices=False),
+        "e_pledge":       dict(turn=30, turns=(30, 31),        flags=(), expect_choices=False),
+        "e_mock":         dict(turn=31, turns=(31, 32),        flags=(), expect_choices=False),
+        "e_apply":        dict(turn=33, turns=(33,),           flags=(), expect_choices=False),
+        "e_grad_photo":   dict(turn=33, turns=(33, 34),        flags=(), expect_choices=False),
+        "e_final_sprint": dict(turn=32, turns=(32, 33),        flags=(), expect_choices=False),
+        "e_university":   dict(turn=26, turns=(26, 27),        flags=(), expect_choices=False),
     }
 
     ## 自由行动段每个月都有，不用一个月往表里抄一行。
     ## 用 tuple 不用生成器：生成器被 `in` 判定消费一次就空了，第二次起永远命不中。
-    AI_FREE_BEATS = tuple("t%d_free" % n for n in range(1, 9))
+    AI_FREE_BEATS = tuple("t%d_free" % n for n in range(1, 37))
 
     def ai_beat(beat_id):
         """取 beat 定义。t3_free…t8_free 按需合成，其余必须已登记。"""
@@ -102,6 +150,11 @@ init -1 python:
         b = ai_beat(beat_id)
         if b is None:
             return False, "beat 未登记：%s" % beat_id
+        if "turns" in b:
+            if store.turn not in b["turns"]:
+                return False, ("beat 不在允许回合：%s 允许 %r，当前 T%s"
+                               % (beat_id, b["turns"], store.turn))
+            return True, ""
         if b["turn"] != store.turn:
             return False, "beat 回合对不上：%s 声明 T%s，当前 T%s" % (beat_id, b["turn"], store.turn)
         return True, ""
@@ -132,7 +185,7 @@ init -1 python:
         b = ai_require_beat(beat_id)
         return {
             "beat": beat_id,
-            "turn": b["turn"],
+            "turn": store.turn,
             "scope": b.get("scope", "scene"),   # scene 走 400 字，ending 走另一套
             "speakers": tuple(speakers if speakers is not None else aischema.ALL_SPEAKERS),
             "actions": tuple(actions if actions is not None else ai_default_actions()),
@@ -203,8 +256,11 @@ init 1 python:
     _AI_SCRIPTED_ONLY = set(TRUE_FLAGS) | {"confession", "piano_crisis"}
 
     for _bid, _b in AI_BEATS.items():
-        if not isinstance(_b["turn"], int) or not (1 <= _b["turn"] <= 8):
-            raise Exception("AI beat %s 的 turn 不在 1..8：%r" % (_bid, _b["turn"]))
+        if not isinstance(_b["turn"], int) or not (1 <= _b["turn"] <= 36):
+            raise Exception("AI beat %s 的 turn 不在 1..36：%r" % (_bid, _b["turn"]))
+        for _t in _b.get("turns", ()):
+            if not isinstance(_t, int) or not (1 <= _t <= 36):
+                raise Exception("AI beat %s 的 turns 里有非法回合：%r" % (_bid, _t))
         _unknown = set(_b["flags"]) - set(FLAG_NAMES)
         if _unknown:
             raise Exception("AI beat %s 里出现未登记的 flag：%s" % (_bid, sorted(_unknown)))
