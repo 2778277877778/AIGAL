@@ -152,7 +152,7 @@
 - **通用人物形象**：本期不做立绘绑定，`Character` 不带 `image=`。AI 与 UI 都不依赖脸。
 - **人物卡**：`高中校园物语/人物卡_v1.md` + `.json`，从剧本反推，带出处与三级状态。每拍只喂相关片段，整卡塞 prompt 会挤掉场景信息。
 - **主角自定义名**：开局输入，长度 1–8 字，禁 `[` `{` `}` 和换行；存档里存名字，prompt 里用 `{name}` 占位，AI 不得直呼本名以外的称呼。
-- **未 define 角色**：夏幸悠、孔子帆、周父、周母在大纲里有戏，`characters.rpy` 尚无定义，落 T2–T8 前必须补 `xia / kong / zm_dad / zm_mom`。
+- **角色 define**：13 个 id 已全部在 `characters.rpy` 里定义（`mc zm zzb zeng stu_a stu_b bro inner xia kong x zm_dad zm_mom`），AI 写这几个人不会被 `ai_validate` 剔台词。显示名以 `characters.rpy` 为准（周父、周母），人物卡里的全称只用于阅读。
 
 ---
 

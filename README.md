@@ -37,7 +37,7 @@ AI 那层还没代码，只有设计，四个文件都没建：
 | `game/ai/provider.rpy` | HTTP 请求、线程、超时、熔断 | 不碰 store、不调 `renpy.notify` |
 | `game/ai/cache.rpy` | 双层缓存、预取、LRU 封顶 | 不改 store 里的 dict 本体 |
 
-[人物卡 v1.1](高中校园物语/人物卡_v1.md) 已经备好，另有[机器版 JSON](高中校园物语/人物卡_v1.json)，13 个 id。其中 8 个跟 `characters.rpy` 的 define 对得上，`xia / kong / x / zm_dad / zm_mom` 五个还没有 define，写进剧本前先补。喂的时候每拍只拼相关角色 150–200 字，整卡塞进去会挤掉场景信息。
+[人物卡 v1.1.2](高中校园物语/人物卡_v1.md) 已经备好，另有[机器版 JSON](高中校园物语/人物卡_v1.json)，13 个 id 全部在 `characters.rpy` 里有 define，`ai_validate` 不会剔台词。喂的时候每拍只拼相关角色 150–200 字，整卡塞进去会挤掉场景信息。
 
 ## AI 输出
 
