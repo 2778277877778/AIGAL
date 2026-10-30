@@ -18,42 +18,21 @@ init -3 python in aig:
     ## 每拍在场的角色段。只带 1–3 个（全带会串味）。
     ## 这张表是骨架，剧本定稿后按实际出场改；没登记的拍默认 mc + zm。
     BEAT_SPEAKERS = {
-        "t1_report":      ("mc", "zeng"),
-        "t1_ceremony":    ("mc", "zm", "inner"),
-        "t1_military":    ("mc", "zzb", "inner"),
-        "t1_committee":   ("mc", "zm", "inner"),
-        "t1_night_piano": ("mc", "zm", "inner"),
-        "t1_free":        ("mc", "zm"),
 
-        "t2_welcome":     ("mc", "zm"),
         "t2_piano":       ("mc", "zm", "inner"),
-        "t2_gala":        ("mc", "zm", "bro"),
-        "t2_exam":        ("mc", "zeng", "inner"),
         "t2_call":        ("mc", "zm", "zm_dad"),
-        "t2_free":        ("mc", "zm", "zzb"),
 
-        "t3_exam":        ("mc", "zeng", "inner"),
         "t3_parent":      ("mc", "zm", "zm_dad", "inner"),
-        "t3_piano":       ("mc", "zm", "inner"),
 
         "t4_artfair":     ("mc", "zm", "kong", "inner"),
-        "t4_exam":        ("mc", "zeng", "inner"),
-        "t4_newyear":     ("mc", "zm", "inner"),
-        "t4_father":      ("mc", "zm", "zm_dad"),
 
         "t5_move":        ("mc", "zm", "inner"),
-        "t5_office":      ("mc", "zm", "zeng"),
         "t5_mother":      ("mc", "zm", "zm_mom", "inner"),
 
-        "t6_sports":      ("mc", "zm", "zzb", "inner"),
-        "t6_run":         ("mc", "zm", "zzb", "inner"),
         "t6_club":        ("mc", "zm", "zeng", "zzb"),
 
         "t7_hall":        ("mc", "zm", "stu_a", "inner"),
-        "t7_talk":        ("mc", "zm", "inner"),
 
-        "t8_exam":        ("mc", "zeng", "inner"),
-        "t8_choice_her":  ("mc", "zm", "zm_dad", "zm_mom"),
         "t8_subject":     ("mc", "zm", "inner"),
         "t8_form":        ("mc", "zm", "inner"),
 
@@ -110,41 +89,20 @@ init -3 python in aig:
 
     ## 本拍场景的一句话提示。同样按实际剧本补。
     BEAT_SCENE = {
-        "t1_report":      "开学报到，宿舍楼报到点，主角第一次离家住校。",
-        "t1_ceremony":    "开学典礼，礼堂后排，周墨坐在旁边但没有说话。",
-        "t1_military":    "军训，操场，周子博在队伍里带节奏。",
-        "t1_committee":   "班委选举，教室，周墨不想上台。",
-        "t1_night_piano": "夜里，旧琴房外，有人在里面弹琴。",
-        "t1_free":        "九月剩下的自由时间。",
-        "t2_welcome":     "迎新晚会筹备，合唱队缺伴奏。",
         "t2_piano":       "主角推门撞见周墨在旧琴房弹琴。",
-        "t2_gala":        "迎新晚会当晚，礼堂，放的是录音伴奏。",
-        "t2_exam":        "第一次月考，考场。",
         "t2_call":        "月考后，楼梯间，周墨在接家里的电话。",
-        "t2_free":        "十月剩下的自由时间。",
 
-        "t3_exam":        "期中考试，考场；周墨物理失手，发了卷子还坐在位上。",
         "t3_parent":      "家长会，教室走廊；周墨父亲到了，主角喊错了称呼。",
-        "t3_piano":       "旧琴房，夜里；周墨坐在琴前，左手按着一个按不下去的键。",
 
         "t4_artfair":     "艺术节，礼堂；钢琴伴奏是周墨弹的，名字没有报。",
-        "t4_exam":        "期末考试，考场。",
-        "t4_newyear":     "元旦，教室里；周墨递来一张手抄谱，主角要回赠一样东西。",
-        "t4_father":      "寒假前，校门口；周墨父亲提分科，要她学医。",
 
         "t5_move":        "艺术楼四楼，走廊；琴房要清空，她一个人在装箱，主角来帮忙。",
-        "t5_office":      "曾老师办公室；社团申请与礼堂后台那台旧琴。",
         "t5_mother":      "楼梯间，夜里；周墨母亲打来电话，说再跟她父亲说说。",
 
-        "t6_sports":      "春季运动会开幕式，礼堂后台那台琴推了出来；周墨的名字被报了上去。",
-        "t6_run":         "操场，八百米终点；主角最后一个跑完，摔在终点线。",
         "t6_club":        "音乐教室；音乐社批下来了，周墨当社长，主角站在报名表前。",
 
         "t7_hall":        "城市音乐厅门口，研学；周墨站在节目单前看了很久。",
-        "t7_talk":        "酒店走廊，夜里；周墨说她想学音乐，问她是不是很自私。",
 
-        "t8_exam":        "学年期末，考场；这是最后一次考试。",
-        "t8_choice_her":  "选科表发下来；周墨父亲在电话里要物化生，她第一次说自己想试一次。",
         "t8_subject":     "教室，选科表摊在桌上；周墨问主角，她是不是错了。",
         "t8_form":        "教室；主角自己的选科表还空着，笔尖在史地政和物化生之间。",
 
@@ -205,17 +163,11 @@ init -3 python in aig:
     ## 没登记的拍默认给全部 ACTIONS（自由时段/与行动有关的拍）。
     BEAT_CHOICES = {
         ## T1 三拍：取值和 t1_september.rpy 里 t1_answer / t1_candy / t1_night 一致
-        "t1_ceremony":    ("deny", "ask", "fumble"),
-        "t1_military":    ("hand", "step", "via_zzb"),
-        "t1_night_piano": ("look", "listen"),
         "t2_piano": ("reveal", "ignore"),
         "t2_call": ("stay", "leave", "water_only"),
-        "t3_piano": ("talk", "silent", "press_key"),
         "t4_artfair": ("speak", "quiet"),
-        "t4_newyear": ("metronome", "strings"),
         "t5_move": ("move", "teacher", "stop"),
         "t6_club": ("join", "help", "no"),
-        "t7_talk": ("support", "persuade", "silent"),
         "t8_subject": ("support", "against", "silent"),
         "t8_form": ("same", "different"),
         ## 事件选择点（§3.3）：只给脚本用，模型 expect_choices=False 不变

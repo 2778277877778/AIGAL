@@ -43,89 +43,12 @@ init -4 python in aig:
     FALLBACK = {
 
         ## ── T1 九月（剧本目前是硬编码，这几段留给以后接 AI 用）─────────────
-        "t1_report": {
-            "lines": [
-                {"speaker": "mc", "text": "同、同学……对不起，老师，我住四〇二，书在哪儿领。"},
-                {"speaker": "zeng", "text": "讲台左边第三摞，自己数。三中考进来的就你一个，别找错。"},
-                {"speaker": "mc", "text": "……三十二号。那个，表上要填家长电话。"},
-                {"speaker": "zeng", "text": "填。写谁的都行，能打通就行，别写空号。"},
-                {"speaker": "mc", "text": "我记着我爸那个号，就是……我得翻一下本子。"},
-            ],
-            "choices": [],
-            "mood": "new",
-        },
 
-        "t1_ceremony": {
-            "lines": [
-                {"speaker": "nar", "text": "雨停了。操场上的水没干，站队的时候鞋底一直在打滑。"},
-                {"speaker": "zm", "text": "……谢谢。"},
-                {"speaker": "mc", "text": "同、同学——你掉的东西。一张纸，折了四折。"},
-                {"speaker": "nar", "text": "纸上是五线谱，一格一格画的。右上角有一行铅笔小字。"},
-                {"speaker": "zm", "text": "你看见上面写的字了吗。"},
-            ],
-            "choices": [
-                {"text": "「没看见。」", "action_key": "deny"},
-                {"text": "「看见了。」", "action_key": "ask"},
-                {"text": "「我什么都没看见，还给你。」", "action_key": "fumble"},
-            ],
-            "mood": "quiet",
-        },
 
-        "t1_military": {
-            "lines": [
-                {"speaker": "nar", "text": "太阳直直地压下来，水泥地反光，看久了眼睛疼。"},
-                {"speaker": "zzb", "text": "兄弟，你脸色不对啊。站直点，教官往这边看了。"},
-                {"speaker": "mc", "text": "……我没事。她那边——周墨脸色更白。"},
-                {"speaker": "zzb", "text": "我看见了。你先把自己站住，别人的事轮不着你。"},
-                {"speaker": "inner", "text": "（糖在口袋里，摸到了，一捏就滑出去。）"},
-            ],
-            "choices": [
-                {"text": "直接把糖塞给她", "action_key": "hand"},
-                {"text": "把糖放在台阶上", "action_key": "step"},
-                {"text": "让周子博转交", "action_key": "via_zzb"},
-            ],
-            "mood": "hot",
-        },
 
-        "t1_committee": {
-            "lines": [
-                {"speaker": "nar", "text": "念名字，举手。学习委员，周墨。没人有意见。"},
-                {"speaker": "zeng", "text": "暑假作业还差几本，学委收一下。"},
-                {"speaker": "mc", "text": "我……好像少一本。三十二号。"},
-                {"speaker": "zm", "text": "补完放讲台左边。第三摞。"},
-                {"speaker": "mc", "text": "……你怎么知道我补得完。"},
-            ],
-            "choices": [],
-            "mood": "plain",
-        },
 
-        "t1_night_piano": {
-            "lines": [
-                {"speaker": "nar", "text": "有人在弹琴。同一个乐句，弹到一半停住，重来。"},
-                {"speaker": "nar", "text": "四楼走廊尽头，门缝漏着光。灯只开了一盏。"},
-                {"speaker": "zm", "text": "……谁。"},
-                {"speaker": "mc", "text": "我、我路过。我听见有人弹琴。"},
-                {"speaker": "nar", "text": "她在门里，没开门。第三遍才顺下来。"},
-            ],
-            "choices": [
-                {"text": "上楼去看", "action_key": "look"},
-                {"text": "在楼下听完", "action_key": "listen"},
-            ],
-            "mood": "night",
-        },
 
         ## ── T2 十月 ────────────────────────────────────────────────────────
-        "t2_welcome": {
-            "lines": [
-                {"speaker": "nar", "text": "合唱队排到一半，缺一个伴奏。老师问，谁会弹琴。"},
-                {"speaker": "zm", "text": "……不会。"},
-                {"speaker": "nar", "text": "她说不快，说完把水杯盖拧上，拧了两圈。"},
-                {"speaker": "zm", "text": "我站后面就行，别把我名字写上去。"},
-                {"speaker": "nar", "text": "名单上「伴奏」那栏空着，一直空到散会。"},
-            ],
-            "choices": [],
-            "mood": "grey",
-        },
 
         "t2_piano": {
             "lines": [
@@ -142,29 +65,7 @@ init -4 python in aig:
             "mood": "cold",
         },
 
-        "t2_gala": {
-            "lines": [
-                {"speaker": "bro", "text": "——下面请听合唱，《送别》。"},
-                {"speaker": "nar", "text": "伴奏是从电脑里放出来的，录音，有一点底噪。"},
-                {"speaker": "mc", "text": "主持人说这伴奏弹得真好。我张了嘴。"},
-                {"speaker": "zm", "text": "……别说话。"},
-                {"speaker": "inner", "text": "（鞋背上被人踩了一脚。我改了口：不知道。）"},
-            ],
-            "choices": [],
-            "mood": "loud",
-        },
 
-        "t2_exam": {
-            "lines": [
-                {"speaker": "zeng", "text": "卷子翻到第二页，名字先写。写完再动笔。"},
-                {"speaker": "inner", "text": "（最后一道大题，第一问我就会，第二问留了空。）"},
-                {"speaker": "inner", "text": "（我算错两个数，擦了三遍，纸起了毛。）"},
-                {"speaker": "zeng", "text": "时间到。最后一排，卷子往前传。"},
-                {"speaker": "inner", "text": "（我从她桌子旁边过去。她的卷子压在最下面。）"},
-            ],
-            "choices": [],
-            "mood": "tense",
-        },
 
         "t2_call": {
             "lines": [
@@ -185,17 +86,6 @@ init -4 python in aig:
         ## ── T3 十一月 ───────────────────────────────────────────────────
         ## 这几段是「没有 key 也能玩」的正文，不是备胎。文案定稿后直接换文字，
         ## 不要改 action_key —— 剧本按 key 走分支。
-        "t3_exam": {
-            "lines": [
-                {"speaker": "zeng", "text": "期中卷子发下去。名字先写，写完再翻页。"},
-                {"speaker": "inner", "text": "（物理卷第一页的红笔道子比平时长。她那一栏写着：年级第三。）"},
-                {"speaker": "zeng", "text": "周墨，物理七十。最后两道大题空着。"},
-                {"speaker": "zm", "text": "……嗯。"},
-                {"speaker": "inner", "text": "（她捏着卷角，手指抖了一下，只一下。）"},
-            ],
-            "choices": [],
-            "mood": "tense",
-        },
 
         "t3_exam/pass": {
             "lines": [
@@ -230,21 +120,6 @@ init -4 python in aig:
             "mood": "low",
         },
 
-        "t3_piano": {
-            "lines": [
-                {"speaker": "nar", "text": "门缝漏着光。她坐在琴前，左手按着一个键，按不下去。"},
-                {"speaker": "mc", "text": "你、你没事吧。"},
-                {"speaker": "zm", "text": "……你怎么找到这儿的。"},
-                {"speaker": "nar", "text": "谱架翻到最后一页，页角卷了。她没哭出声，眼泪掉在琴键上。"},
-                {"speaker": "zm", "text": "这台琴是学校最旧的。音准早就坏了。"},
-            ],
-            "choices": [
-                {"text": "说点什么，哪怕说不好。", "action_key": "talk"},
-                {"text": "站着，不说话。", "action_key": "silent"},
-                {"text": "蹲下去，帮她按住那个键。", "action_key": "press_key"},
-            ],
-            "mood": "night",
-        },
 
         ## ── T4 十二月 ───────────────────────────────────────────────────
         "t4_artfair": {
@@ -261,15 +136,6 @@ init -4 python in aig:
             "mood": "light",
         },
 
-        "t4_exam": {
-            "lines": [
-                {"speaker": "zeng", "text": "期末。这次题目比期中难，做不完的别耗在一道上。"},
-                {"speaker": "inner", "text": "（最后一道大题，第一问我做出来了，第二问空着。）"},
-                {"speaker": "nar", "text": "收卷的时候她从我旁边过去，手里卷子压得很平。"},
-            ],
-            "choices": [],
-            "mood": "tense",
-        },
 
         "t4_exam/pass": {
             "lines": [
@@ -291,31 +157,7 @@ init -4 python in aig:
             "mood": "low",
         },
 
-        "t4_newyear": {
-            "lines": [
-                {"speaker": "zm", "text": "给你。"},
-                {"speaker": "mc", "text": "给、给我？"},
-                {"speaker": "nar", "text": "一张手抄谱，折了两折。最后一页的角上写着：给 {name}。"},
-                {"speaker": "zm", "text": "……别现在看。"},
-            ],
-            "choices": [
-                {"text": "把旧节拍器给她。", "action_key": "metronome"},
-                {"text": "送一盒琴弦。", "action_key": "strings"},
-            ],
-            "mood": "quiet",
-        },
 
-        "t4_father": {
-            "lines": [
-                {"speaker": "nar", "text": "寒假前，校门口。她父亲的车停在路边，没熄火。"},
-                {"speaker": "zm_dad", "text": "分科表发了吧。学医，物化生。"},
-                {"speaker": "zm", "text": "……嗯。"},
-                {"speaker": "zm_dad", "text": "别想那些没用的。"},
-                {"speaker": "nar", "text": "她低头站着，手指在袖口上搓来搓去。"},
-            ],
-            "choices": [],
-            "mood": "cold",
-        },
 
         ## ── T5 三月 ─────────────────────────────────────────────────────
         "t5_move": {
@@ -334,16 +176,6 @@ init -4 python in aig:
             "mood": "cold",
         },
 
-        "t5_office": {
-            "lines": [
-                {"speaker": "zeng", "text": "屋子要清，这个我改不了。社团申请，我可以帮你们递。"},
-                {"speaker": "zeng", "text": "琴先挪到礼堂后台，那儿有台旧的。"},
-                {"speaker": "zm", "text": "……谢谢老师。"},
-                {"speaker": "nar", "text": "她一直低着头，出了办公室才抬起来。"},
-            ],
-            "choices": [],
-            "mood": "plain",
-        },
 
         "t5_mother": {
             "lines": [
@@ -357,28 +189,7 @@ init -4 python in aig:
         },
 
         ## ── T6 四月 ─────────────────────────────────────────────────────
-        "t6_sports": {
-            "lines": [
-                {"speaker": "zzb", "text": "学委，名字我给你报上去了。别谢我。"},
-                {"speaker": "zm", "text": "……你。"},
-                {"speaker": "nar", "text": "她推了两次，没推掉。琴凳搬上来的时候，她把裙角压住，坐下去。"},
-                {"speaker": "nar", "text": "散场的时候，有人说：学委还有这手艺。她低头卷谱子。"},
-            ],
-            "choices": [],
-            "mood": "light",
-        },
 
-        "t6_run": {
-            "lines": [
-                {"speaker": "nar", "text": "最后一圈，腿不是自己的了。终点线是白的，在晃。"},
-                {"speaker": "nar", "text": "我摔在线上。有人蹲下来，递了瓶水。"},
-                {"speaker": "zm", "text": "你跑得很慢。"},
-                {"speaker": "mc", "text": "……我知道。"},
-                {"speaker": "zm", "text": "但你跑完了。"},
-            ],
-            "choices": [],
-            "mood": "hot",
-        },
 
         "t6_club": {
             "lines": [
@@ -408,32 +219,8 @@ init -4 python in aig:
             "mood": "still",
         },
 
-        "t7_talk": {
-            "lines": [
-                {"speaker": "nar", "text": "酒店走廊，地毯是暗红色的。她把房卡捏在手里，没刷。"},
-                {"speaker": "zm", "text": "我想学音乐。"},
-                {"speaker": "zm", "text": "我爸要我学医。"},
-                {"speaker": "zm", "text": "我是不是很自私。"},
-                {"speaker": "nar", "text": "她问得很轻，像怕被谁听见。"},
-            ],
-            "choices": [
-                {"text": "「你弹琴的时候，不像在考试。」", "action_key": "support"},
-                {"text": "「你爸也是为你好。」", "action_key": "persuade"},
-                {"text": "什么也说不出来。", "action_key": "silent"},
-            ],
-            "mood": "night",
-        },
 
         ## ── T8 六月 ─────────────────────────────────────────────────────
-        "t8_exam": {
-            "lines": [
-                {"speaker": "zeng", "text": "学年期末。这是最后一次，考完就分班。"},
-                {"speaker": "inner", "text": "（卷子发下来，我先把名字写了。写完看了一会儿窗外。）"},
-                {"speaker": "nar", "text": "她坐在靠窗那排。笔一直没停。"},
-            ],
-            "choices": [],
-            "mood": "tense",
-        },
 
         "t8_exam/pass": {
             "lines": [
@@ -455,17 +242,6 @@ init -4 python in aig:
             "mood": "low",
         },
 
-        "t8_choice_her": {
-            "lines": [
-                {"speaker": "nar", "text": "选科表发下来。她在「史地政」那栏停了很久。"},
-                {"speaker": "zm_dad", "text": "物化生。学医，我跟你说过。"},
-                {"speaker": "zm_mom", "text": "让她自己选。"},
-                {"speaker": "zm", "text": "……我想试一次。"},
-                {"speaker": "nar", "text": "她说完，把表推到一边，手还在抖。"},
-            ],
-            "choices": [],
-            "mood": "tense",
-        },
 
         "t8_subject": {
             "lines": [
@@ -1059,24 +835,6 @@ init -4 python in aig:
             "mood": "still",
         },
         ## 自由段时间拍：现在剧本走 ai_free_scene/act/*，这两条只作测试与旧调用点的兜底。
-        "t1_free": {
-            "lines": [
-                {"speaker": "nar", "text": "九月的太阳还很高。走廊里没人，教室门开着。"},
-                {"speaker": "zm", "text": "作业放讲台左边。第三摞。"},
-                {"speaker": "inner", "text": "（又是第三摞。我记住了。）"},
-            ],
-            "choices": [],
-            "mood": "plain",
-        },
-        "t2_free": {
-            "lines": [
-                {"speaker": "nar", "text": "十月的风从走廊穿过去。小卖部在换零钱。"},
-                {"speaker": "zzb", "text": "打球去啊？操场一个人没有。"},
-                {"speaker": "inner", "text": "（这个月还剩几天，做不完的事都堆在后面。）"},
-            ],
-            "choices": [],
-            "mood": "plain",
-        },
     }
 
     ## 撑不住时的最后一道：一句中性占位，绝不编剧情。
