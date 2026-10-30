@@ -98,6 +98,43 @@ init -1 python:
         return "%s：%s。" % (REL_LABEL[sid], REL_TIERS[rel_tier(sid)])
 
 
+    ## ── 好感只由玩家行为给（《剧情大纲_三年_v1.md》§5.1）──────────────────
+    ## 里程碑只置 Flag、不加 rel；rel 表示「你在谁身上花了时间」。
+    ## 自由行动落在某条线的节点 → 该线 +5，每月每条线最多计 1 次。
+    REL_PER_ACTION = 5
+
+    ACTION_NODE = {
+        "attend_class": "classroom", "ask_zhoumo": "classroom",
+        "study": "library", "study_with": "library",
+        "eat_canteen": "canteen", "buy_shop": "shop",
+        "do_sport": "field", "watch_basketball": "field",
+        "rest_dorm": "dorm", "weekend_stay": "dorm",
+        "listen_piano": "piano_room",
+        "visit_auditorium": "auditorium",
+        "visit_club": "music_room",
+    }
+
+    NODE_LINE = {
+        "art_building": "zm", "piano_room": "zm", "auditorium": "zm", "music_room": "zm",
+        "field": "xia",
+        "library": "x", "shop": "x",
+        ## classroom / dorm / canteen 中立，不给任何一线
+    }
+
+
+    def add_rel_from_action(action_key):
+        """一次自由行动给对应线 +REL_PER_ACTION；同月同线只计一次。返回实际增量。"""
+        node = ACTION_NODE.get(action_key)
+        sid = NODE_LINE.get(node)
+        if not sid:
+            return 0
+        if store.rel_month.get(sid) == store.turn:
+            return 0
+        store.rel_month = dict(store.rel_month, **{sid: store.turn})
+        add_rel(sid, REL_PER_ACTION)
+        return REL_PER_ACTION
+
+
     def lock_route():
         """T22 锁一次路线；已锁过直接返回，读档/回滚可复现。
 
@@ -120,4 +157,5 @@ default rel_x = 0
 default route = "none"
 default route_done = False
 default ms_done = {"zm": {}, "xia": {}, "x": {}}
-default event_seen = {}        # 随机事件 id → 次数，同局权重衰减用（引擎还没接）
+default event_seen = {}        # 随机事件 id → 次数，同局权重衰减用
+default rel_month = {}         # sid → 最后一次靠行动加 rel 的回合号（每月每线一次）

@@ -372,12 +372,108 @@ testcase event_pool:
             assert abs(_w[0] - EVENT_POOL["e_sports_aut"]["weight"] * EVENT_SEEN_RATE) < 1e-9
             assert abs(_w[1] - EVENT_POOL["e_open_day"]["weight"]) < 1e-9
 
-            ## 断言 4「事件不改主线」：事件拍不许给 AI 置 Flag、不进 TRUE 判定、不进主线回放
+            ## 断言 4（更正版）：事件不置 Flag、不改 beat 序列；rel 是它影响结局的唯一通道，
+            ## 而且所有 rel 增量必须走 EVENT_REL_GAINS 这张允许表。
             for _eid in EVENT_POOL:
                 assert AI_BEATS[_eid]["flags"] == (), "事件拍不许给 AI 置 Flag：%s" % _eid
                 assert _eid not in TRUE_FLAGS, "事件 id 混进了 TRUE 判定：%s" % _eid
             _main = replay_trace({}, 30, 10)[0]
             assert not any(_b.startswith("e_") for _b in _main), "事件不该出现在主线回放里"
+
+            ## 每个分支都必须有 rel 增量登记（0 也要显式写成 {}），不能漏
+            for _eid, _opts in EVENT_CHOICES.items():
+                for _text, _key in _opts:
+                    assert (_eid, _key) in EVENT_REL_GAINS, "分支没登记 rel：%s/%s" % (_eid, _key)
+                    for _sid, _amt in EVENT_REL_GAINS[(_eid, _key)].items():
+                        assert _sid in REL_NAMES, "事件分支给了未知线：%s" % _sid
+                        assert _amt >= 0, "事件不许扣好感：%s/%s" % (_eid, _key)
+            for _pair in EVENT_REL_GAINS:
+                assert _pair[1] in [k for _, k in EVENT_CHOICES.get(_pair[0], ())], \
+                    "允许表里有不存在的分支：%s/%s" % _pair
+
+            ## 实际应用：增量只从允许表来；未知分支必须当场抛
+            _rel_before = (store.rel_zm, store.rel_xia, store.rel_x)
+            store.rel_zm = store.rel_xia = store.rel_x = 0
+            try:
+                event_apply_choice("e_outing", "with_xia")
+                assert store.rel_xia == 5 and store.rel_zm == 0, "e_outing/with_xia 应只给夏幸悠 +5"
+                event_apply_choice("e_parent1", "avoid")
+                assert (store.rel_zm, store.rel_xia, store.rel_x) == (0, 5, 0), "avoid 不该加好感"
+                try:
+                    event_apply_choice("e_outing", "nope")
+                    assert False, "未知分支没抛"
+                except Exception:
+                    pass
+            finally:
+                store.rel_zm, store.rel_xia, store.rel_x = _rel_before
         finally:
             store.turn = _saved_turn
             store.event_seen = _saved_seen
+
+
+## 好感只由玩家行为给（《剧情大纲_三年_v1.md》§5.1）：节点属于哪条线 +5，
+## 每月每线一次，中立节点不给；do_action 必须真的把这个增量带出来。
+testcase rel_from_actions:
+    pause .2
+
+    python:
+        _saved = (store.rel_zm, store.rel_xia, store.rel_x, store.rel_month, store.turn,
+                  store.study, store.stress, store.stamina, store.ap)
+        try:
+            store.rel_zm = store.rel_xia = store.rel_x = 0
+            store.rel_month = {}
+            store.turn = 1
+
+            assert add_rel_from_action("listen_piano") == 5 and store.rel_zm == 5
+            assert add_rel_from_action("visit_auditorium") == 0, "同月同线第二次不该再给"
+            assert add_rel_from_action("do_sport") == 5 and store.rel_xia == 5
+            assert add_rel_from_action("study") == 5 and store.rel_x == 5
+            assert add_rel_from_action("attend_class") == 0, "中立节点不该给好感"
+
+            store.turn = 2
+            assert add_rel_from_action("listen_piano") == 5 and store.rel_zm == 10, "换月应重新计一次"
+            assert add_rel_from_action("buy_shop") == 5 and store.rel_x == 10
+
+            ## do_action 真把好感带上（不是只在测试里调函数）
+            store.rel_month = {}
+            store.study, store.stress, store.stamina, store.ap = 30, 10, 40, 3
+            _ch = do_action("study")
+            assert _ch.get("rel_gain") == 5 and store.rel_x == 15
+            assert add_rel_from_action("study") == 0, "同月第二次 study 不该再加"
+        finally:
+            (store.rel_zm, store.rel_xia, store.rel_x, store.rel_month, store.turn,
+             store.study, store.stress, store.stamina, store.ap) = _saved
+
+
+## 路线可达性（玩法策划 这次真正的验收）：AP 全投一条线，T22 必须锁到那一条；
+## 三条线均摊则谁都不够 60，route = none。没有这条，死结局会一直绿着。
+testcase route_reachability:
+    pause .2
+
+    python:
+        _saved = (store.rel_zm, store.rel_xia, store.rel_x, store.rel_month,
+                  store.route, store.route_done, store.turn)
+        try:
+            _focus = (("zm", "listen_piano"), ("xia", "do_sport"), ("x", "study"))
+            for _sid, _act in _focus:
+                store.rel_zm = store.rel_xia = store.rel_x = 0
+                store.rel_month = {}
+                store.route, store.route_done = "none", False
+                for _t in range(1, 23):
+                    store.turn = _t
+                    add_rel_from_action(_act)
+                assert lock_route() == _sid, "AP 全投 %s，T22 应锁到 %s，实际 %r" % (_sid, _sid, store.route)
+
+            ## 均摊：22 个月轮流投三条线，各 35–40，谁都不够 60
+            store.rel_zm = store.rel_xia = store.rel_x = 0
+            store.rel_month = {}
+            store.route, store.route_done = "none", False
+            _acts = ("listen_piano", "do_sport", "study")
+            for _t in range(1, 23):
+                store.turn = _t
+                add_rel_from_action(_acts[(_t - 1) % 3])
+            assert lock_route() == "none", "均摊不该走进任何一条线：%r" % (store.route,)
+            assert store.rel_zm < 60 and store.rel_xia < 60 and store.rel_x < 60
+        finally:
+            (store.rel_zm, store.rel_xia, store.rel_x, store.rel_month,
+             store.route, store.route_done, store.turn) = _saved

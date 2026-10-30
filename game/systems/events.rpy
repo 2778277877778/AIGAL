@@ -170,3 +170,71 @@ init -1 python:
         if eid not in EVENT_POOL:
             raise Exception("未知事件：%r" % (eid,))
         store.event_seen[eid] = int(store.event_seen.get(eid, 0)) + 1
+
+
+    ## ── 事件选择点（《剧情大纲_三年_v1.md》§3.3，只给 4 个事件配）──────────
+    ## 分支只改 rel，不置 Flag、不改 route、不新增拍；avoid/skip 记 0，没有负值。
+    ## 模型仍然不许给选项：expect_choices=False 不变，下面这张表只给脚本用。
+    EVENT_CHOICES = {
+        "e_outing": (
+            ("跟周墨一组", "with_zm"),
+            ("跟夏幸悠一组", "with_xia"),
+            ("跟温以宁一组", "with_x"),
+        ),
+        "e_parent1": (
+            ("过去喊一声「周医生好」", "greet"),
+            ("替她挡一句话", "cover"),
+            ("装作没看见", "avoid"),
+        ),
+        "e_chorus": (
+            ("报名合唱", "join"),
+            ("只帮忙搬琴", "help"),
+            ("不去", "skip"),
+        ),
+        "e_grad_photo": (
+            ("站到周墨旁边", "with_zm"),
+            ("站到夏幸悠旁边", "with_xia"),
+            ("站到温以宁旁边", "with_x"),
+        ),
+    }
+
+    ## 允许表：分支 → 该线 rel 增量。所有事件 rel 只能从这张表走（event_apply_choice）。
+    EVENT_REL_GAINS = {
+        ("e_outing", "with_zm"): {"zm": 5},
+        ("e_outing", "with_xia"): {"xia": 5},
+        ("e_outing", "with_x"): {"x": 5},
+        ("e_parent1", "greet"): {"zm": 3},
+        ("e_parent1", "cover"): {"zm": 8},
+        ("e_parent1", "avoid"): {},
+        ("e_chorus", "join"): {"zm": 5},
+        ("e_chorus", "help"): {"zm": 3},
+        ("e_chorus", "skip"): {},
+        ("e_grad_photo", "with_zm"): {"zm": 5},
+        ("e_grad_photo", "with_xia"): {"xia": 5},
+        ("e_grad_photo", "with_x"): {"x": 5},
+    }
+
+
+    def event_has_choices(eid):
+        return eid in EVENT_CHOICES
+
+
+    def event_choice_items(eid):
+        """给 renpy.display_menu 的 [(显示文本, action_key)]。"""
+        if eid not in EVENT_CHOICES:
+            raise Exception("这个事件没有选择点：%r" % (eid,))
+        return [(text, key) for text, key in EVENT_CHOICES[eid]]
+
+
+    def event_apply_choice(eid, key):
+        """事件分支的 rel 增量只从允许表取；没登记的分支当场抛，不静默给 0。"""
+        if eid not in EVENT_CHOICES:
+            raise Exception("这个事件没有选择点：%r" % (eid,))
+        if key not in [k for _, k in EVENT_CHOICES[eid]]:
+            raise Exception("未知分支：%s/%s" % (eid, key))
+        gains = EVENT_REL_GAINS.get((eid, key))
+        if gains is None:
+            raise Exception("分支没登记 rel 增量：%s/%s" % (eid, key))
+        for sid, amount in gains.items():
+            add_rel(sid, amount)
+        return gains

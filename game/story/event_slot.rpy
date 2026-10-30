@@ -12,5 +12,9 @@ label event_slot:
     if _eid:
         $ _evd = aig.run(_eid)
         $ ai_say(_evd["lines"])
+        if event_has_choices(_eid):
+            $ _ev_pick = renpy.display_menu(event_choice_items(_eid))
+            if _ev_pick:
+                $ event_apply_choice(_eid, _ev_pick)
         $ event_mark_seen(_eid)
     return

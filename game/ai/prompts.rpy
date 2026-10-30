@@ -218,6 +218,11 @@ init -3 python in aig:
         "t7_talk": ("support", "persuade", "silent"),
         "t8_subject": ("support", "against", "silent"),
         "t8_form": ("same", "different"),
+        ## 事件选择点（§3.3）：只给脚本用，模型 expect_choices=False 不变
+        "e_outing": ("with_zm", "with_xia", "with_x"),
+        "e_parent1": ("greet", "cover", "avoid"),
+        "e_chorus": ("join", "help", "skip"),
+        "e_grad_photo": ("with_zm", "with_xia", "with_x"),
     }
 
     def choices_for(beat_id):

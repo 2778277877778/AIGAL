@@ -175,6 +175,10 @@ init -1 python:
                 changed[stat] = add_stat(stat, act[stat], affected_by_state=(stat == "study"))
         if "money" in act:
             changed["money"] = add_stat("money", -act["money"])
+        ## 好感不由数值表给：按行动所在节点算（relations.rpy，每月每线一次）
+        _rel = add_rel_from_action(key)
+        if _rel:
+            changed["rel_gain"] = _rel
         return changed
 
     def start_month(turn_index, allowance=ALLOWANCE_PER_MONTH):
