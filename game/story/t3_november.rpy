@@ -27,18 +27,23 @@ label t3_november:
     $ exam_roll()
     $ t3_midterm_pass = exam_pass("midterm")
     scene bg classroom_night
-    call ai_play("t3_exam", "pass" if t3_midterm_pass else "fail", "这次期中" + ("过了 50 分线。" if t3_midterm_pass else "没到 50 分线。"))
+    if t3_midterm_pass:
+        "〔期中 · 得分 [exam_score] · 过线〕"
+    else:
+        "〔期中 · 得分 [exam_score] · 没到线〕"
 
     ## 固定 · 家长会
     scene bg classroom_night
     call ai_play("t3_parent")
+    $ mark_milestone_for_beat("t3_parent")
 
-    ## 固定 · 旧琴房（本回合唯一的关键选择：怎么安慰她）
+    ## 旧琴房（周 M2 的下半场，戏并进 T2 的主拍；这里只留脚本过场，不再单独调 AI）
     scene bg corridor_night
     "晚自习后，宿舍里没有她。我从三楼找到四楼。"
     $ set_flag("found_piano_room")
     scene bg art_floor4
-    call ai_play("t3_piano")
+    "门缝漏着光。她坐在琴前，左手按着一个按不下去的键。"
+    "谱架翻到最后一页，页角卷了。她没哭出声。"
     menu:
         "说点什么，哪怕说不好。":
             $ t3_comfort = "talk"

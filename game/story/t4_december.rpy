@@ -20,10 +20,11 @@ label t4_december:
     "十二月。艺术节的通知贴在公告栏，班级节目是《送别》。"
     nar "伴奏那栏空着。报名表在讲台上放了三天，周墨没去填。"
 
-    ## 固定 · 艺术节（关键选择：替不替她说话）
+    ## 主拍 · 艺术节（元旦回礼、寒假前父亲提分科并进这一拍的事实清单）
     $ set_flag("art_fair")
     scene bg auditorium_night
-    call ai_play("t4_artfair")
+    call ai_play("t4_artfair", "", "艺术节伴奏是她弹的、名字没报、她父亲没来；元旦她送手抄谱，他回赠旧节拍器（电池装反，走得比实际快）；寒假前父亲在校门口提学医、物化生。")
+    $ mark_milestone_for_beat("t4_artfair")
     menu:
         "去跟主持人说清楚，伴奏是她弹的。":
             $ t4_speak = "speak"
@@ -38,12 +39,13 @@ label t4_december:
     $ exam_roll()
     $ t4_final_pass = exam_pass("final")
     scene bg classroom_night
-    call ai_play("t4_exam", "pass" if t4_final_pass else "fail", "这次期末" + ("过了 60 分线。" if t4_final_pass else "没到 60 分线。"))
+    if t4_final_pass:
+        "〔期末 · 得分 [exam_score] · 过线〕"
+    else:
+        "〔期末 · 得分 [exam_score] · 没到线〕"
 
-    ## 固定 · 元旦（回赠什么）
+    ## 元旦回赠（选项保留，台词并进上面的主拍）
     $ set_flag("sheet_music")
-    scene bg classroom_night
-    call ai_play("t4_newyear")
     menu:
         "把旧节拍器给她。":
             $ t4_gift = "metronome"
@@ -53,10 +55,6 @@ label t4_december:
         "那个节拍器是从旧货市场淘的。电池装反了，走得比实际快。"
     else:
         "琴弦是在文具店买的，包装上落了灰。我不会挑，随便拿了一盒。"
-
-    ## 固定 · 寒假前（她父亲提分科）
-    scene bg gate_winter
-    call ai_play("t4_father")
 
     ## 随机事件槽（60% 命中，抽不中就是纯自由行动）
     call event_slot

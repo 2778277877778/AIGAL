@@ -21,6 +21,7 @@ label t5_march:
     $ set_flag("piano_crisis")
     scene bg art_floor4
     call ai_play("t5_move")
+    $ mark_milestone_for_beat("t5_move")
     menu:
         "蹲下去，把谱子一张张捡起来。":
             $ t5_choice = "move"
@@ -35,13 +36,14 @@ label t5_march:
     else:
         "我蹲下去捡谱子。纸边割手，我没出声。"
 
-    ## 固定 · 曾老师（社团申请 / 琴挪到礼堂后台）
+    ## 曾老师（社团申请 / 琴挪到礼堂后台）—— 并进上面两拍，不再单独调 AI
     scene bg office
-    call ai_play("t5_office", t5_choice)
+    "曾老师帮我们递了社团申请；琴先挪到礼堂后台，那儿有台旧的。"
 
     ## 固定 · 母亲电话
     scene bg stairwell_night
     call ai_play("t5_mother")
+    $ mark_milestone_for_beat("t5_mother")
 
     ## 自由行动
     call free_actions

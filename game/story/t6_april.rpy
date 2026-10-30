@@ -18,18 +18,11 @@ label t6_april:
     "四月。运动会报名表传到我手里的时候，八百米那栏已经写着我的名字。"
     inner "（周子博的字。他连「本人签字」都替我画好了。）"
 
-    ## 固定 · 开幕式（礼堂后台那台琴推出来）
-    scene bg auditorium_night
-    call ai_play("t6_sports")
-
-    ## 固定 · 八百米
-    scene bg playground_heat
-    call ai_play("t6_run")
-
-    ## 固定 · 音乐社成立（关键选择：报名 / 只帮忙 / 不参与）
+    ## 主拍 · 音乐社成立（开幕式她弹琴、八百米摔终点并进这一拍的事实清单）
     $ set_flag("club")
     scene bg music_room
-    call ai_play("t6_club")
+    call ai_play("t6_club", "", "运动会开幕式缺钢琴，她的名字被报上去，她弹了，散场有人夸「学委还有这手艺」；八百米他最后一个跑完、摔在终点，她递水说「你跑得很慢，但你跑完了」；音乐社成立，她当社长，他第一个报名。")
+    $ mark_milestone_for_beat("t6_club")
     menu:
         "第一个在报名表上签字。":
             $ t6_join = "join"

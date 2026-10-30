@@ -27,13 +27,17 @@ label t8_june:
     ## 固定 · 学年期末
     $ exam_roll()
     $ t8_yearly_pass = exam_pass("yearly")
+    $ t8_yearly_line = exam_line("yearly")
     scene bg classroom_night
-    call ai_play("t8_exam", "pass" if t8_yearly_pass else "fail", "学年期末" + ("过了 70 分线。" if t8_yearly_pass else "没到 70 分线。"))
+    if t8_yearly_pass:
+        "〔学年期末 · 得分 [exam_score] · 过 [t8_yearly_line] 分线〕"
+    else:
+        "〔学年期末 · 得分 [exam_score] · 没到 [t8_yearly_line] 分线〕"
 
-    ## 固定 · 选科（她在电话里第一次说「我想试一次」，填了史地政）
+    ## 主拍 · 选科（她做出选择那一场并进这一拍的事实清单）
     scene bg classroom_night
-    call ai_play("t8_choice_her")
-    call ai_play("t8_subject")
+    call ai_play("t8_subject", "", "选科表发下来，她在「史地政」那栏停了很久；父亲电话里要物化生，母亲说让她自己选；她第一次说「我想试一次」，填了史地政。")
+    $ mark_milestone_for_beat("t8_subject")
     menu:
         "「你想弹就弹。」":
             $ t8_support = "support"
@@ -51,6 +55,7 @@ label t8_june:
 
     ## 主角自己的表
     call ai_play("t8_form")
+    $ mark_milestone_for_beat("t8_form")
     menu:
         "跟她填一样的（史地政）。":
             $ t8_form = "same"
@@ -77,9 +82,9 @@ label t8_june:
     ## 自由行动（T8 只有 2 AP）
     call free_actions
 
-    ## 分班名单 + 结局
-    scene bg classroom_day
-    "分班名单贴在教学楼一楼。"
-    call ending_gate
+    ## 月末结算（高一结束，进 T9；结局已移到 T36）
+    scene bg dorm_402
+    "〔T8 月末结算 · 学习 [study]，压力 [stress]，体力 [stamina]，钱 [money]〕"
+    "〔高一结束。〕"
 
-    return
+    jump t9_may

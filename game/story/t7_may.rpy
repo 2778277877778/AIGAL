@@ -20,14 +20,14 @@ label t7_may:
     "五月。研学，大巴开了两个小时，车窗上全是灰。"
     nar "周墨坐在靠窗那排，一路没睡，手里捏着学校发的那张行程单。"
 
-    ## 固定 · 城市音乐厅
+    ## 主拍 · 城市音乐厅（酒店走廊夜谈并进这一拍的事实清单）
     $ set_flag("music_hall")
     scene bg concert_hall
-    call ai_play("t7_hall")
+    call ai_play("t7_hall", "", "她在音乐厅门口盯着节目单右下角那行小字站了很久；夜里在酒店走廊说她想学音乐、父亲要她学医，问「我是不是很自私」。")
+    $ mark_milestone_for_beat("t7_hall")
 
-    ## 固定 · 酒店走廊夜谈（关键选择：支持她 / 劝她听父母的 / 沉默）
+    ## 夜谈的选择（台词并进上面的主拍）
     scene bg hotel_corridor
-    call ai_play("t7_talk")
     menu:
         "「你弹琴的时候，不像在考试。」":
             $ t7_answer = "support"

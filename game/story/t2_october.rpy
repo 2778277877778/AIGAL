@@ -5,10 +5,9 @@
 ## 拍内选项一律由脚本的 menu 给（t2_piano / t2_call），AI 不产出选项、不产出 Flag。
 ## 调用只有一种：call ai_play("<拍 id>", <分支>, <既定事实>) —— 只演台词。
 ##
-## 预取按《运行时预算_v1.md》§2.1 的三条触发点放：
-##   t2_piano 的选项点下之后 → 预取 t2_gala（这时才确定下一拍的 key 成不成立）
-##   t2_call  的选项点下之后 → 预取 t2_free（自由时段 choice_path 恒空，窗口最长）
-## 预取是后台跑的，不阻塞；取到缓存就命中，取不到就现场买或降级，剧本不用管。
+## 压拍（2026-10-30）：迎新筹备、撞见她弹琴、晚会录音伴奏合成一场 `t2_piano`
+## （周 M2 的承载拍），旧 id `t2_welcome` / `t2_gala` 已从 beat 表与模板里删掉；
+## 月考、楼梯间电话保留为月末结算拍。预取统一由 free_actions 末尾触发。
 ################################################################################
 
 image bg art_backstage   = Solid("#1a1d22")
@@ -25,37 +24,28 @@ label t2_october:
 
     $ start_month(2)
 
-    ## 月初 · 迎新晚会筹备（周墨拒绝上台）
-    scene bg classroom_day
-    call ai_play("t2_welcome")
-
-    ## 固定 · 旧琴房（他撞见她弹琴）
+    ## 主拍 · 旧琴房（他把迎新晚会筹备、撞见她弹琴、晚会放录音伴奏并成一场）
     ## 选项由脚本给，AI 只写这一拍的台词——走向不能交给模型。
     scene bg art_backstage
-    call ai_play("t2_piano")
+    call ai_play("t2_piano", "", "同一晚三件事：合唱缺伴奏、她拒绝上台；主角在旧琴房撞见她弹琴，她只要求别说出去；晚会放录音伴奏，主持人夸伴奏，主角差点说漏嘴。")
+    $ mark_milestone_for_beat("t2_piano")
     menu:
         "「我不会说。」":
             $ t2_piano_choice = "ignore"
         "「你弹得很好。」":
             $ t2_piano_choice = "reveal"
 
-    # 选项点下的这一瞬间：下一拍的 choice_path 定了，key 才成立 —— 预取放这里
-    $ aig.prefetch("t2_gala")
-
     # 两种反应都是「听见了琴」，Flag 只看这一点；分支文本留给后面的拍回指
     $ set_flag("heard_piano")
 
-    ## 固定 · 迎新晚会（放录音伴奏，主持人夸伴奏）
-    scene bg auditorium_night
-    call ai_play("t2_gala")
-
-    ## 固定 · 月考 —— 数值判定不动，AI 只写「过」或「没过」那一版
+    ## 固定 · 月考 —— 分数由 exam_roll 算，不交给 AI 说
     scene bg classroom_day
     $ exam_roll()
     $ t2_monthly_pass = exam_pass("monthly")
-    $ t2_exam_key = "pass" if t2_monthly_pass else "fail"
-    $ t2_exam_note = "这次月考" + ("过了 35 分线。" if t2_monthly_pass else "没过 35 分线。")
-    call ai_play("t2_exam", t2_exam_key, t2_exam_note)
+    if t2_monthly_pass:
+        "〔月考 · 得分 [exam_score] · 过线〕"
+    else:
+        "〔月考 · 得分 [exam_score] · 没到线〕"
 
     ## 固定 · 楼梯间电话（父亲打电话问数学为什么没满分）
     scene bg stairwell_night

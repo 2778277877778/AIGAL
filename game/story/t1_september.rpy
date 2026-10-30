@@ -101,7 +101,7 @@ label t1_september:
             "越说越乱，最后干脆不说了。"
             zm "……嗯。"
 
-    $ set_flag("met_zhoumo")
+    $ mark_milestone("zm", 1)
 
     ## 场景 1-3 · 军训（9/2–9/7）
     scene bg playground_heat

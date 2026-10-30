@@ -21,13 +21,13 @@ init -1 python:
     ## 每个回合的 AI 拍，顺序与 story/t2_october.rpy … t8_june.rpy 一致。
     ## T1 是手写（0 次 AI 调用），不计入 beat 序列。
     REPLAY_TURNS = (
-        (2, ("t2_welcome", "t2_piano", "t2_gala", "t2_exam", "t2_call")),
-        (3, ("t3_exam", "t3_parent", "t3_piano")),
-        (4, ("t4_artfair", "t4_exam", "t4_newyear", "t4_father")),
-        (5, ("t5_move", "t5_office", "t5_mother")),
-        (6, ("t6_sports", "t6_run", "t6_club")),
-        (7, ("t7_hall", "t7_talk")),
-        (8, ("t8_exam", "t8_choice_her", "t8_subject", "t8_form")),
+        (2, ("t2_piano", "t2_call")),
+        (3, ("t3_parent",)),
+        (4, ("t4_artfair",)),
+        (5, ("t5_move", "t5_mother")),
+        (6, ("t6_club",)),
+        (7, ("t7_hall",)),
+        (8, ("t8_subject", "t8_form")),
     )
 
     ## 这些拍由脚本事先置位，与选择无关（T1 的两条是手写段固定置位）。
