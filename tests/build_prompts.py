@@ -97,13 +97,15 @@ def parse(text):
 
 
 _DETAIL_RE = re.compile(r"^([a-z][a-z0-9_]*)\s*[:：]\s*(.+)$")
-_BEAT_KEY_RE = re.compile(r"^t\d+_[a-z0-9_]+$")
+## 主线拍 t<回合>_<词>，事件拍 e_<词>。两类都进 BEAT_DETAILS；别的行一律跳过并报出来。
+_BEAT_KEY_RE = re.compile(r"^(?:t\d+|e)_[a-z0-9_]+$")
 
 
 def parse_details(text):
     """解析机器可读的细节段：`t2_piano: 雨刚停 / 谱架压着两叠谱`，一行一拍。
 
-    只认 beat id 形状的键（t<数字>_<名字>），散文里偶然出现 `时间: 九月` 不会被吞。
+    只认 beat id 形状的键（t<回合>_<词> 或 e_<词>），散文里偶然出现 `时间: 九月` 不会被吞。
+    认得形状却被丢掉的键会打到 stderr，不许静默——2026-10-30 就因为只认 t\\d+_ 把 20 个 e_* 全吞了。
     """
     details = {}
     for line in text.splitlines():
@@ -112,6 +114,7 @@ def parse_details(text):
             continue
         key, body = m.group(1), m.group(2)
         if not _BEAT_KEY_RE.match(key):
+            sys.stderr.write("跳过不认识的键：%s\n" % key)
             continue
         items = [x.strip() for x in body.split("/")]
         items = [x for x in items if x]

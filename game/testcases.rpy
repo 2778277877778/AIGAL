@@ -302,3 +302,73 @@ testcase replay_logic:
             assert False, "未知选择点没抛"
         except Exception:
             pass
+
+
+## 随机事件池（systems/events.rpy + §1.2 §3）：登记、闸门、过滤、互斥、权重衰减。
+testcase event_pool:
+    pause .2
+
+    python:
+        _saved_turn = store.turn
+        _saved_seen = store.event_seen
+        try:
+            ## 回合 → 自然月：T1=9、T5=1、T13=9
+            assert calendar_month(1) == 9 and calendar_month(5) == 1 and calendar_month(13) == 9
+            assert event_slot_at(2) and event_slot_at(22) and not event_slot_at(1)
+
+            ## §1.2 的 21 个主线拍 + 20 个事件拍都进了 beat 表
+            for _bid in ("t9_injury", "t10_subject", "t13_artfair", "t14_coach", "t15_ask",
+                         "t16_mother", "t17_parent", "t18_half", "t19_club", "t20_quit",
+                         "t21_transfer", "t25_hall", "t26_entry", "t27_watch", "t28_form",
+                         "t29_exam", "t30_offer", "t32_choice", "t33_last", "t34_gaokao",
+                         "t35_score"):
+                assert _bid in AI_BEATS, "主线拍未登记：%s" % _bid
+            assert len(EVENT_POOL) == 20, "事件池应为 20 个，实际 %d" % len(EVENT_POOL)
+            for _eid in EVENT_POOL:
+                assert _eid in AI_BEATS, "事件未登记进 beat 表：%s" % _eid
+                assert AI_BEATS[_eid].get("turns"), "事件缺 turns：%s" % _eid
+            assert AI_BEATS["e_welcome"]["turns"] == (1, 2)
+
+            class _FakeRng(object):
+                def __init__(self, value):
+                    self.value = value
+                def random(self):
+                    return self.value
+                def choices(self, seq, weights=None, k=1):
+                    return [seq[0]]
+
+            store.turn = 2
+            store.event_seen = {}
+
+            ## 60% 闸门：0.7 不出，0.5 出
+            assert event_draw(2, rng=_FakeRng(0.7)) == "", "0.7 不该掷中"
+            assert event_draw(2, rng=_FakeRng(0.5)), "0.5 应当掷中"
+
+            ## 与当月主线互斥：T2 有琴房/晚会（stage），舞台类事件不能出
+            _cands = event_candidates(2)
+            assert "e_welcome" not in _cands and "e_newyear" not in _cands
+            assert "e_sports_aut" in _cands
+
+            ## 年级过滤：T2 的候选只可能来自高一池
+            for _eid in _cands:
+                assert EVENT_POOL[_eid]["grade"] == 1, "T2 抽到了非高一事件：%s" % _eid
+
+            ## 互斥：春季运动会出过，秋季运动会就不再出
+            store.event_seen = {"e_sports_spring": 1}
+            assert "e_sports_aut" not in event_candidates(2)
+
+            ## 权重衰减：已出过 ×0.3
+            store.event_seen = {"e_sports_aut": 1}
+            _w = event_weights(["e_sports_aut", "e_open_day"])
+            assert abs(_w[0] - EVENT_POOL["e_sports_aut"]["weight"] * EVENT_SEEN_RATE) < 1e-9
+            assert abs(_w[1] - EVENT_POOL["e_open_day"]["weight"]) < 1e-9
+
+            ## 断言 4「事件不改主线」：事件拍不许给 AI 置 Flag、不进 TRUE 判定、不进主线回放
+            for _eid in EVENT_POOL:
+                assert AI_BEATS[_eid]["flags"] == (), "事件拍不许给 AI 置 Flag：%s" % _eid
+                assert _eid not in TRUE_FLAGS, "事件 id 混进了 TRUE 判定：%s" % _eid
+            _main = replay_trace({}, 30, 10)[0]
+            assert not any(_b.startswith("e_") for _b in _main), "事件不该出现在主线回放里"
+        finally:
+            store.turn = _saved_turn
+            store.event_seen = _saved_seen

@@ -679,6 +679,186 @@ init -4 python in aig:
             "choices": [],
             "mood": "light",
         },
+        "e_welcome": {
+            "lines": [
+                {"speaker": "nar", "text": "礼堂的灯一半是坏的。后台堆着没拆的纸箱。"},
+                {"speaker": "zm", "text": "我站后面就行。"},
+                {"speaker": "nar", "text": "名单上「伴奏」那栏空着，一直空到散会。"},
+            ],
+            "choices": [],
+            "mood": "grey",
+        },
+        "e_sports_aut": {
+            "lines": [
+                {"speaker": "nar", "text": "跑道上的划线漆还没干。"},
+                {"speaker": "xia", "text": "喂，八百米，缺一个。"},
+                {"speaker": "zzb", "text": "他上。他跑得慢，但是他站得住。"},
+            ],
+            "choices": [],
+            "mood": "hot",
+        },
+        "e_open_day": {
+            "lines": [
+                {"speaker": "nar", "text": "校门口摆着签到桌，家长手里拿着招生简章。"},
+                {"speaker": "x", "text": "今天人多，别站在这儿。"},
+                {"speaker": "nar", "text": "他把路让开，退到门后面。"},
+            ],
+            "choices": [],
+            "mood": "plain",
+        },
+        "e_outing": {
+            "lines": [
+                {"speaker": "nar", "text": "大巴最后一排的窗打不开。"},
+                {"speaker": "zzb", "text": "晕车的坐前面，别硬撑。"},
+                {"speaker": "nar", "text": "野餐垫上全是草屑。"},
+            ],
+            "choices": [],
+            "mood": "light",
+        },
+        "e_parent1": {
+            "lines": [
+                {"speaker": "nar", "text": "走廊摆了一排塑料凳，成绩单贴在教室后墙。"},
+                {"speaker": "zeng", "text": "家长问什么，照实说，别加话。"},
+                {"speaker": "nar", "text": "教室门一直关着，没人出来。"},
+            ],
+            "choices": [],
+            "mood": "tense",
+        },
+        "e_newyear": {
+            "lines": [
+                {"speaker": "nar", "text": "教室窗上贴着剪纸，日光灯管闪了一下。"},
+                {"speaker": "zzb", "text": "节目报满了，你还想上？"},
+                {"speaker": "kong", "text": "这段我排到第三个，别改。"},
+            ],
+            "choices": [],
+            "mood": "warm",
+        },
+        "e_spring_fest": {
+            "lines": [
+                {"speaker": "nar", "text": "校门口挂了两个灯笼，食堂窗口只开了两个。"},
+                {"speaker": "nar", "text": "走廊里没人，教室门都锁着。"},
+                {"speaker": "nar", "text": "广播放着一首拜年的曲子，放完又从头放。"},
+            ],
+            "choices": [],
+            "mood": "still",
+        },
+        "e_placement": {
+            "lines": [
+                {"speaker": "nar", "text": "卷子还带着油印味。"},
+                {"speaker": "zeng", "text": "名字先写，写完再动笔。"},
+                {"speaker": "nar", "text": "讲台上那盒粉笔没人拆。"},
+            ],
+            "choices": [],
+            "mood": "tense",
+        },
+        "e_culture": {
+            "lines": [
+                {"speaker": "nar", "text": "展板摆在操场边上，边角翘了。"},
+                {"speaker": "zeng", "text": "你们班这块字太小，重做。"},
+                {"speaker": "x", "text": "我重抄一遍。"},
+            ],
+            "choices": [],
+            "mood": "plain",
+        },
+        "e_sports_spring": {
+            "lines": [
+                {"speaker": "nar", "text": "场边放着几箱矿泉水，地还是潮的。"},
+                {"speaker": "xia", "text": "三对三，缺一个。"},
+                {"speaker": "nar", "text": "她先跑了一圈热身，回来的时候没喘。"},
+            ],
+            "choices": [],
+            "mood": "hot",
+        },
+        "e_study_tour": {
+            "lines": [
+                {"speaker": "nar", "text": "高速上的指示牌一闪而过。"},
+                {"speaker": "zm", "text": "到了别乱走，跟队。"},
+                {"speaker": "x", "text": "手机没信号。你们谁的能打？"},
+            ],
+            "choices": [],
+            "mood": "plain",
+        },
+        "e_club_fair": {
+            "lines": [
+                {"speaker": "nar", "text": "横幅绑在栏杆上，被风吹歪了。"},
+                {"speaker": "kong", "text": "报名表在这儿，名字写清楚。"},
+                {"speaker": "nar", "text": "桌上摆着没人填的表，风一吹就翻页。"},
+            ],
+            "choices": [],
+            "mood": "light",
+        },
+        "e_chorus": {
+            "lines": [
+                {"speaker": "nar", "text": "排练放在午休，窗帘拉着。"},
+                {"speaker": "zm", "text": "第二段再来一遍。"},
+                {"speaker": "nar", "text": "钢琴盖上有一层灰，没人擦。"},
+            ],
+            "choices": [],
+            "mood": "quiet",
+        },
+        "e_transfer": {
+            "lines": [
+                {"speaker": "nar", "text": "教室后排空了一张桌子。"},
+                {"speaker": "x", "text": "他东西昨天就搬完了。"},
+                {"speaker": "nar", "text": "窗台上有个没人带走的杯子。"},
+            ],
+            "choices": [],
+            "mood": "still",
+        },
+        "e_pledge": {
+            "lines": [
+                {"speaker": "nar", "text": "操场上摆了红色拱门，风把横幅吹得啪啪响。"},
+                {"speaker": "zzb", "text": "站直点，拍照的来了。"},
+                {"speaker": "nar", "text": "队伍从楼梯口一直排到门口。"},
+            ],
+            "choices": [],
+            "mood": "loud",
+        },
+        "e_mock": {
+            "lines": [
+                {"speaker": "nar", "text": "后墙的倒计时牌翻到了两位数。"},
+                {"speaker": "zeng", "text": "卷子收上去，别在走廊对答案。"},
+                {"speaker": "nar", "text": "走廊上有人抱着卷子跑。"},
+            ],
+            "choices": [],
+            "mood": "tense",
+        },
+        "e_apply": {
+            "lines": [
+                {"speaker": "nar", "text": "会议室摆着一排宣传册。"},
+                {"speaker": "zm_dad", "text": "学医，物化生。别想那些没用的。"},
+                {"speaker": "zm", "text": "我看看就行。"},
+            ],
+            "choices": [],
+            "mood": "low",
+        },
+        "e_grad_photo": {
+            "lines": [
+                {"speaker": "nar", "text": "拍毕业照是在下午，逆光。"},
+                {"speaker": "nar", "text": "有人没系校服最上面那颗扣子。"},
+                {"speaker": "nar", "text": "摄影师喊了三遍「往中间靠」。"},
+            ],
+            "choices": [],
+            "mood": "still",
+        },
+        "e_final_sprint": {
+            "lines": [
+                {"speaker": "nar", "text": "教室的风扇开到最大，纸还是贴在胳膊上。"},
+                {"speaker": "nar", "text": "黑板角落的倒计时只剩个位数。"},
+                {"speaker": "nar", "text": "有人趴在桌上睡着了，没人叫。"},
+            ],
+            "choices": [],
+            "mood": "tense",
+        },
+        "e_university": {
+            "lines": [
+                {"speaker": "nar", "text": "校门口发着带校徽的袋子。"},
+                {"speaker": "nar", "text": "礼堂里在放宣传片，声音开得很大。"},
+                {"speaker": "nar", "text": "她拿了一份简章，没翻开。"},
+            ],
+            "choices": [],
+            "mood": "light",
+        },
     }
 
     ## 撑不住时的最后一道：一句中性占位，绝不编剧情。
