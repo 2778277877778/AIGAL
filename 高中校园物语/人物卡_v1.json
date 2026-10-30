@@ -1,18 +1,18 @@
 {
   "schema_ver": 1,
-  "content_ver": "1.1.1",
-  "doc": "人物卡 v1.1.1 · 机器版",
+  "content_ver": "1.1.2",
+  "doc": "人物卡 v1.1.2 · 机器版",
   "generated_at": "2026-10-30",
-  "commit": "582e87d",
+  "commit": "6680e93",
   "human_readable": "人物卡_v1.md",
-  "note": "文件名沿用 v1，内容版本 v1.1.1；v1.1.1 = 第三位女同学 x 定名「温以宁」并给到最小可用，其余仍空",
+  "note": "文件名沿用 v1，内容版本 v1.1.2；v1.1.2 = 13 个 id 全部进 characters.rpy，缺口表作废",
   "speaker_counts": {
     "total": 13,
-    "defined_in_characters_rpy": 8,
-    "defined_ids": ["mc", "zm", "zzb", "zeng", "stu_a", "stu_b", "bro", "inner"],
-    "pending_define": 5,
-    "pending_define_ids": ["xia", "kong", "x", "zm_dad", "zm_mom"],
-    "note": "不是全集一致；待补 id 用之前必须先 define，否则剧本报错"
+    "defined_in_characters_rpy": 13,
+    "defined_ids": ["mc", "zm", "zzb", "zeng", "stu_a", "stu_b", "bro", "inner", "xia", "kong", "x", "zm_dad", "zm_mom"],
+    "pending_define": 0,
+    "pending_define_ids": [],
+    "note": "全部已 define（2026-10-30, 6680e93）；id 就这一套，不许另起简称"
   },
   "status_legend": {
     "confirmed": "原仓库有明文依据",
@@ -456,8 +456,7 @@
       "forbidden": [
         "不留长发、不撒娇、不参与感情线",
         "不许写成「女汉子」式夸张脸谱：她的直是态度，不是嗓门大",
-        "不许她有暗恋",
-        "characters.rpy 无 define，用之前先补 id"
+        "不许她有暗恋"
       ],
       "source": ["高中校园物语/游戏设定总表_v2.md §三", "高中校园物语/回合事件表_v3.md §4（其余为 🆕）"]
     },
@@ -502,8 +501,7 @@
         "不许用「女性化动作」标识性向（最省事也最刻板）",
         "不许拿性向当笑点",
         "不许给他感情线",
-        "不许让他替周墨公开秘密",
-        "characters.rpy 无 define，用之前先补 id"
+        "不许让他替周墨公开秘密"
       ],
       "source": ["高中校园物语/游戏设定总表_v2.md §三", "高中校园物语/剧本大纲_高一学年_v3.md §3 T4（其余为 🆕）"]
     },
@@ -526,7 +524,8 @@
       "source": ["高中校园物语/游戏设定总表_v2.md §三 §七 第 4 条"]
     },
     "zm_dad": {
-      "name": "周墨父亲",
+      "name": "周父",
+      "name_full": "周墨父亲",
       "renameable": false,
       "age": 45,
       "role": "压力来源",
@@ -545,7 +544,8 @@
       "source": ["高中校园物语/剧本大纲_高一学年_v3.md §1 §3 T2 T4"]
     },
     "zm_mom": {
-      "name": "周墨母亲",
+      "name": "周母",
+      "name_full": "周墨母亲",
       "renameable": false,
       "age": 42,
       "role": "另一条压力线，也是唯一的活口",
@@ -600,8 +600,8 @@
     }
   },
   "gaps": {
-    "missing_character_defines": ["夏幸悠→xia", "孔子帆→kong", "周墨父亲→zm_dad", "周墨母亲→zm_mom"],
-    "note": "大纲和节点表里有戏，characters.rpy 没有 define，剧本一用就是裸字符串或报错；建议由 coding 补进 speaker 白名单"
+    "missing_character_defines": [],
+    "note": "已于 2026-10-30 补齐（6680e93）：xia / kong / x / zm_dad / zm_mom 全部进 characters.rpy，ai_validate 不再剔这五个人的台词。显示名以 characters.rpy 为准（周父、周母）"
   },
   "decisions_pending": [
     "主角家庭：关外小五金店、不管成绩（🆕）",
