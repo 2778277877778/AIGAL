@@ -11,7 +11,7 @@
 #>
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('run', 'lint', 'compile', 'test', 'shots', 'distribute')]
+    [ValidateSet('run', 'lint', 'compile', 'test', 'diversity', 'shots', 'distribute')]
     [string]$Command = 'lint',
 
     # test 用：只跑某个 testcase
@@ -191,6 +191,16 @@ switch ($Command) {
         & $py (Join-Path $sdk 'renpy.py') $repo distribute
     }
     default {
+        ## diversity：差异观测，不进默认链（跟 shots 一样）。
+        ## 它只是 test 的一个具名用例，打印真实细节覆盖与 Jaccard，真数据缺位时判红。
+        if ($Command -eq 'diversity') {
+            $Command = 'test'
+            if (-not $Name) { $Name = 'diversity_report' }
+            ## 只有走这条命令时才判红：默认链会跑所有 case，
+            ## 差异报告挂在里面会让每次提交都红，而它依赖的是还没落地的文案数据。
+            $env:AIGAL_DIVERSITY = '1'
+        }
+
         ## 人物卡 / 提示词的计数与 id 一致性（文案策划 的检查器）。
         ## 跑在 lint 之前：计数漂了就没必要再看脚本。
         if ($Command -in @('lint', 'test')) {

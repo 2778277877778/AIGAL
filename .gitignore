@@ -1,4 +1,4 @@
-# Directories that Ren'Py changes files in.
+﻿# Directories that Ren'Py changes files in.
 /game/saves
 /game/cache
 
@@ -36,3 +36,7 @@
 # Python side-effect files.
 /game/**/__pycache__/
 **/__pycache__/
+
+# dev.ps1 shots temp case (copied into game/ and deleted); may linger after a crash
+/game/__shots_ui.rpy
+/game/__shots_ui.rpyc
