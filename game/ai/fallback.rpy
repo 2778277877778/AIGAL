@@ -859,6 +859,205 @@ init -4 python in aig:
             "choices": [],
             "mood": "light",
         },
+        ## ── T9–T35 主线拍（§1.2；没 key 时读的就是这几段）──────────────────
+        "t9_injury": {
+            "lines": [
+                {"speaker": "nar", "text": "训练散了。她坐在跑道边，手按着脚踝，没站起来。"},
+                {"speaker": "mc", "text": "你、你没事吧。"},
+                {"speaker": "xia", "text": "没事。"},
+                {"speaker": "nar", "text": "她说完站起来，走了两步，又停下。"},
+            ],
+            "choices": [],
+            "mood": "low",
+        },
+        "t10_subject": {
+            "lines": [
+                {"speaker": "nar", "text": "选科表发下来。她在「史地政」那一栏停住，笔尖压出一个点。"},
+                {"speaker": "zm_dad", "text": "物化生。学医，我跟你说过。"},
+                {"speaker": "zm", "text": "……我知道。"},
+                {"speaker": "nar", "text": "她把笔放下，表没有填完。"},
+            ],
+            "choices": [],
+            "mood": "cold",
+        },
+        "t13_artfair": {
+            "lines": [
+                {"speaker": "nar", "text": "艺术节的灯暗下来，琴声从侧幕后面出来。"},
+                {"speaker": "kong", "text": "是她。"},
+                {"speaker": "nar", "text": "报名表上「伴奏」那一栏，还是空的。"},
+            ],
+            "choices": [],
+            "mood": "light",
+        },
+        "t14_coach": {
+            "lines": [
+                {"speaker": "nar", "text": "教练把她叫到看台下面，说了很久。"},
+                {"speaker": "xia", "text": "我知道。"},
+                {"speaker": "nar", "text": "她回来的时候，把外套拉链一直拉到顶。"},
+            ],
+            "choices": [],
+            "mood": "cold",
+        },
+        "t15_ask": {
+            "lines": [
+                {"speaker": "nar", "text": "她第一次主动站到他桌边。"},
+                {"speaker": "x", "text": "这道题，你也不会？"},
+                {"speaker": "mc", "text": "我、我看看。"},
+                {"speaker": "nar", "text": "她把练习册放下，人没走。"},
+            ],
+            "choices": [],
+            "mood": "quiet",
+        },
+        "t16_mother": {
+            "lines": [
+                {"speaker": "nar", "text": "电话里她母亲说了很久，她只应了两声。"},
+                {"speaker": "zm_mom", "text": "你爸那边，我再说。"},
+                {"speaker": "nar", "text": "她挂了电话，站在窗边没动。"},
+            ],
+            "choices": [],
+            "mood": "low",
+        },
+        "t17_parent": {
+            "lines": [
+                {"speaker": "nar", "text": "家长会散场，她母亲在走廊里跟老师说话。"},
+                {"speaker": "xia", "text": "我妈想让我走文化课。"},
+                {"speaker": "nar", "text": "她说完，把成绩单折起来塞进口袋。"},
+            ],
+            "choices": [],
+            "mood": "low",
+        },
+        "t18_half": {
+            "lines": [
+                {"speaker": "nar", "text": "放学路上，她讲家里的事，讲到一半停住。"},
+                {"speaker": "x", "text": "算了，不说了。"},
+                {"speaker": "nar", "text": "她踢了一下路边的石子，又往前走。"},
+            ],
+            "choices": [],
+            "mood": "still",
+        },
+        "t19_club": {
+            "lines": [
+                {"speaker": "zeng", "text": "社团批了。社长，你来当。"},
+                {"speaker": "zm", "text": "我？"},
+                {"speaker": "zzb", "text": "社长，收不收男生？"},
+                {"speaker": "zm", "text": "收。但你不许偷弹。"},
+            ],
+            "choices": [],
+            "mood": "light",
+        },
+        "t20_quit": {
+            "lines": [
+                {"speaker": "nar", "text": "队里有人要她退，他站在门口没让开。"},
+                {"speaker": "mc", "text": "她、她没说不跑。"},
+                {"speaker": "nar", "text": "她在他身后，一直没有说话。"},
+            ],
+            "choices": [],
+            "mood": "hot",
+        },
+        "t21_transfer": {
+            "lines": [
+                {"speaker": "x", "text": "我可能……要转走。"},
+                {"speaker": "mc", "text": "转、转去哪。"},
+                {"speaker": "x", "text": "还没定。"},
+                {"speaker": "nar", "text": "她说完，低头笑了一下。"},
+            ],
+            "choices": [],
+            "mood": "cold",
+        },
+        "t25_hall": {
+            "lines": [
+                {"speaker": "nar", "text": "音乐厅门口，她盯着节目单右下角那行小字。"},
+                {"speaker": "zm", "text": "你说，我要是学这个。"},
+                {"speaker": "nar", "text": "她没说完。"},
+            ],
+            "choices": [],
+            "mood": "still",
+        },
+        "t26_entry": {
+            "lines": [
+                {"speaker": "nar", "text": "体育单招报名表放在她桌上，压了一整天。"},
+                {"speaker": "xia", "text": "我还没想好。"},
+                {"speaker": "nar", "text": "她嘴上这么说，表已经填了一半。"},
+            ],
+            "choices": [],
+            "mood": "plain",
+        },
+        "t27_watch": {
+            "lines": [
+                {"speaker": "nar", "text": "她看着另外两条线，什么也没评价。"},
+                {"speaker": "x", "text": "她们都挺好的。"},
+                {"speaker": "nar", "text": "她说的是别人。"},
+            ],
+            "choices": [],
+            "mood": "still",
+        },
+        "t28_form": {
+            "lines": [
+                {"speaker": "zm_dad", "text": "志愿表，你自己想清楚。"},
+                {"speaker": "zm", "text": "……我想填这个。"},
+                {"speaker": "mc", "text": "我、我支持她。"},
+                {"speaker": "nar", "text": "她父亲看了他很久，没说话。"},
+            ],
+            "choices": [],
+            "mood": "tense",
+        },
+        "t29_exam": {
+            "lines": [
+                {"speaker": "nar", "text": "单招考试那天，她没有告诉他。"},
+                {"speaker": "nar", "text": "他是从别人嘴里知道的。"},
+                {"speaker": "xia", "text": "考完了。"},
+                {"speaker": "nar", "text": "就这三个字。"},
+            ],
+            "choices": [],
+            "mood": "low",
+        },
+        "t30_offer": {
+            "lines": [
+                {"speaker": "nar", "text": "他桌上多了一个没署名的小东西。"},
+                {"speaker": "nar", "text": "一张折好的纸，里面是修好的琴弦。"},
+                {"speaker": "x", "text": "不是我。"},
+                {"speaker": "nar", "text": "她说完就走了。"},
+            ],
+            "choices": [],
+            "mood": "quiet",
+        },
+        "t32_choice": {
+            "lines": [
+                {"speaker": "xia", "text": "我做完决定了。"},
+                {"speaker": "mc", "text": "什么决定。"},
+                {"speaker": "xia", "text": "不用你回答。"},
+                {"speaker": "nar", "text": "她说完，转身跑进雨里。"},
+            ],
+            "choices": [],
+            "mood": "tense",
+        },
+        "t33_last": {
+            "lines": [
+                {"speaker": "x", "text": "这三年，谢谢你。"},
+                {"speaker": "mc", "text": "你、你要走了？"},
+                {"speaker": "x", "text": "嗯。"},
+                {"speaker": "nar", "text": "她没回头。"},
+            ],
+            "choices": [],
+            "mood": "cold",
+        },
+        "t34_gaokao": {
+            "lines": [
+                {"speaker": "nar", "text": "高考。考场外面的树一动不动。"},
+                {"speaker": "zeng", "text": "名字先写，写完再动笔。"},
+                {"speaker": "nar", "text": "这一回，没有人再问第几名。"},
+            ],
+            "choices": [],
+            "mood": "tense",
+        },
+        "t35_score": {
+            "lines": [
+                {"speaker": "nar", "text": "查分那晚，家里很安静。"},
+                {"speaker": "nar", "text": "屏幕上的数字亮着，他看了很久。"},
+            ],
+            "choices": [],
+            "mood": "still",
+        },
     }
 
     ## 撑不住时的最后一道：一句中性占位，绝不编剧情。

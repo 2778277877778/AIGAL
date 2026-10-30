@@ -90,7 +90,12 @@ testcase beat_coverage:
     python:
         _missing = []
         for _bid in AI_BEATS:
-            if not (aig.template(_bid).get("lines") or ()):
+            ## 自由段不直接播 tN_free（走 act/<action_key>），不要求它有拍模板
+            if _bid.endswith("_free"):
+                continue
+            ## 必须命中这一拍自己的模板；落到 _EMPTY_TEMPLATE 也算缺
+            ## （它有占位行，只看「有没有 lines」会漏掉「真空模板」）。
+            if aig.template(_bid) is aig._EMPTY_TEMPLATE:
                 _missing.append(_bid)
         assert not _missing, "这些拍没有本地模板：%s" % ", ".join(sorted(_missing))
 
