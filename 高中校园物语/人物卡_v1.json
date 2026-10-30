@@ -1,11 +1,11 @@
 {
   "schema_ver": 1,
-  "content_ver": "1.1",
-  "doc": "人物卡 v1.1 · 机器版",
+  "content_ver": "1.1.1",
+  "doc": "人物卡 v1.1.1 · 机器版",
   "generated_at": "2026-10-30",
-  "commit": "d204d58",
+  "commit": "582e87d",
   "human_readable": "人物卡_v1.md",
-  "note": "文件名沿用 v1，内容版本 v1.1；2026-10-30 补全 pending、新建 xia/kong、补厚周父周母、新增 mood_ladder/triggers/scene_reaction",
+  "note": "文件名沿用 v1，内容版本 v1.1.1；v1.1.1 = 第三位女同学 x 定名「温以宁」并给到最小可用，其余仍空",
   "speaker_counts": {
     "total": 13,
     "defined_in_characters_rpy": 8,
@@ -508,15 +508,21 @@
       "source": ["高中校园物语/游戏设定总表_v2.md §三", "高中校园物语/剧本大纲_高一学年_v3.md §3 T4（其余为 🆕）"]
     },
     "x": {
-      "name": "第三位女同学",
-      "renameable": true,
-      "status": "no_material",
-      "role": "群像",
-      "confirmed": ["名字待定"],
+      "name": "温以宁",
+      "renameable": false,
+      "status": "named_minimal",
+      "decided_at": "2026-10-30",
+      "role": "第三位女同学；群像",
+      "class": "高一（3）班，座位在周墨斜后方",
+      "confirmed": ["名字已定：温以宁"],
+      "extra": "除名字外全空——设定总表里她只有「第三位女同学 / 只做群像」",
+      "speech": ["句子短", "爱接别人的话尾", "不自己起头"],
       "lines": [],
-      "name_candidates": ["林知夏", "何雨青", "温以宁"],
-      "pending": ["名字", "全部"],
-      "forbidden": ["零素材，不许写", "AI 不许自己编名字——等定稿后再启用"],
+      "lines_new": ["……真的假的。", "你们在说什么。"],
+      "habits": ["转笔", "别人说话时点头"],
+      "scene_reaction": {"classroom": "斜后方，接话尾"},
+      "pending": ["戏份", "性格", "是否开线"],
+      "forbidden": ["不做感情线", "不推进 Flag", "不给单独场景", "AI 不许给她编性格或身世"],
       "source": ["高中校园物语/游戏设定总表_v2.md §三 §七 第 4 条"]
     },
     "zm_dad": {
@@ -601,7 +607,9 @@
     "主角家庭：关外小五金店、不管成绩（🆕）",
     "周墨十级：真的但她否认（🆕）",
     "夏幸悠、孔子帆：配角封顶还是开线",
-    "第三位女同学 x 的名字：林知夏 / 何雨青 / 温以宁",
     "苏瑶台词库要不要并进周墨（建议只并日常短句 5–9 条）"
+  ],
+  "decisions_done": [
+    {"date": "2026-10-30", "item": "第三位女同学 x 的名字", "value": "温以宁"}
   ]
 }
