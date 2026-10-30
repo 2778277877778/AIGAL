@@ -49,23 +49,20 @@ testcase ai_contract:
 
     python:
         _saved_turn = getattr(store, "turn", 1)
-        store.turn = 1
+        store.turn = 3
         try:
-            ## T1 的拍能和当前回合对上
-            assert ai_require_beat("t1_report")["turn"] == 1, "t1_report 的 turn 不对"
+            ## 夹具用 t3_parent：t1_* 是手写段、t*_free 改模板池后都没有调用点，
+            ## 两族登记会被清掉，拿它们当夹具会随登记一起失效。
+            assert ai_require_beat("t3_parent")["turn"] == 3, "t3_parent 的 turn 不对"
 
-            ## 跨回合的拍必须被挡下来：T1 的流程里不该出现 T2 的拍
-            assert ai_beat_ok("t2_piano")[0] is False, "T1 里放行了 T2 的拍"
+            ## 跨回合的拍必须被挡下来：T3 的回合里不该放行 T9+ 的拍
+            assert ai_beat_ok("t9_injury")[0] is False, "T3 里放行了 T9 的拍"
 
             ## 未登记的 beat 要报出名字，不能静默返回 None 让上层崩在渲染时
-            assert ai_beat_ok("t9_final")[0] is False, "未登记的 beat 没被拦"
-
-            ## 自由行动段按需合成，T1..T8 每个月都得有
-            for _n in range(1, 9):
-                assert ai_beat("t%d_free" % _n) is not None, "t%d_free 没合成出来" % _n
+            assert ai_beat_ok("t99_nothing")[0] is False, "未登记的 beat 没被拦"
 
             ## 本拍 flag 白名单为空：终结/告白这类判定链 flag 不许 AI 置位
-            assert ai_ctx("t1_free")["flags"] == (), "t1_free 的 flag 白名单不是空的"
+            assert ai_ctx("t3_parent")["flags"] == (), "t3_parent 的 flag 白名单不是空的"
 
             ## 玩家可以把名字填成标签，渲染时也必须洗掉
             _saved_name = getattr(store, "player_name", None)
@@ -426,13 +423,16 @@ testcase rel_from_actions:
 
             assert add_rel_from_action("listen_piano") == 5 and store.rel_zm == 5
             assert add_rel_from_action("visit_auditorium") == 0, "同月同线第二次不该再给"
+            assert add_rel_from_action("ask_zhoumo") == 0, "周墨同月第二次也不给"
             assert add_rel_from_action("do_sport") == 5 and store.rel_xia == 5
+            assert add_rel_from_action("watch_basketball") == 0, "看球不在 §5.3 的夏幸悠列表里"
             assert add_rel_from_action("study") == 5 and store.rel_x == 5
             assert add_rel_from_action("attend_class") == 0, "中立节点不该给好感"
+            assert add_rel_from_action("buy_shop") == 0, "小卖部是中立，不归温以宁"
 
             store.turn = 2
-            assert add_rel_from_action("listen_piano") == 5 and store.rel_zm == 10, "换月应重新计一次"
-            assert add_rel_from_action("buy_shop") == 5 and store.rel_x == 10
+            assert add_rel_from_action("study_with") == 5 and store.rel_zm == 10, "换月应重新计一次"
+            assert add_rel_from_action("study") == 5 and store.rel_x == 10
 
             ## do_action 真把好感带上（不是只在测试里调函数）
             store.rel_month = {}
@@ -477,3 +477,49 @@ testcase route_reachability:
         finally:
             (store.rel_zm, store.rel_xia, store.rel_x, store.rel_month,
              store.route, store.route_done, store.turn) = _saved
+
+
+## 里程碑接线（《剧情大纲_三年_v1.md》§5.2 第六节）：周墨 10 条按内容挂到现有拍上，
+## 每条都必须在 story 里真的有一行 `mark_milestone_for_beat`，不是只登记不调用。
+testcase milestone_wiring:
+    pause .2
+
+    python:
+        _saved = (dict(store.ms_done), store.flags, store.turn)
+        try:
+            store.ms_done = {"zm": {}, "xia": {}, "x": {}}
+            store.flags = {}
+
+            for _bid, _pair in MILESTONE_BEATS.items():
+                assert _bid in AI_BEATS, "映射的拍未登记：%s" % _bid
+                assert 1 <= _pair[1] <= len(MILESTONE_FLAGS[_pair[0]]), "idx 越界：%s" % _bid
+
+            ## 周墨 10 条：M1 挂在 T1 手写段（没有 beat），其余 9 条按拍挂
+            mark_milestone("zm", 1)
+            for _bid in ("t2_piano", "t3_parent", "t5_move", "t8_subject",
+                         "t4_artfair", "t5_mother", "t6_club", "t7_hall", "t8_form"):
+                assert _bid in MILESTONE_BEATS, "周墨里程碑漏挂：%s" % _bid
+                mark_milestone_for_beat(_bid)
+            assert ms_count("zm") == 10, "周墨 10 条应全部达成，实际 %d" % ms_count("zm")
+            assert stage_of("zm") == 4, "10 条里程碑应为 stage 4"
+            for _f in MILESTONE_FLAGS["zm"]:
+                assert has_flag(_f), "里程碑没置 Flag：%s" % _f
+            assert mark_milestone_for_beat("t99_nope") == 0
+
+            ## 静态核对：story 里真的有这些调用行
+            for _f, _needle in (
+                ("story/t1_september.rpy", 'mark_milestone("zm", 1)'),
+                ("story/t2_october.rpy", 'mark_milestone_for_beat("t2_piano")'),
+                ("story/t3_november.rpy", 'mark_milestone_for_beat("t3_parent")'),
+                ("story/t4_december.rpy", 'mark_milestone_for_beat("t4_artfair")'),
+                ("story/t5_march.rpy", 'mark_milestone_for_beat("t5_move")'),
+                ("story/t5_march.rpy", 'mark_milestone_for_beat("t5_mother")'),
+                ("story/t6_april.rpy", 'mark_milestone_for_beat("t6_club")'),
+                ("story/t7_may.rpy", 'mark_milestone_for_beat("t7_hall")'),
+                ("story/t8_june.rpy", 'mark_milestone_for_beat("t8_subject")'),
+                ("story/t8_june.rpy", 'mark_milestone_for_beat("t8_form")'),
+            ):
+                _txt = renpy.open_file(_f).read().decode("utf-8")
+                assert _needle in _txt, "剧本没接这条里程碑：%s" % _f
+        finally:
+            (store.ms_done, store.flags, store.turn) = _saved

@@ -1,4 +1,4 @@
-################################################################################
+﻿################################################################################
 ## ai/testcases_diversity.rpy —— 「每局不同、存档一致」的契约断言
 ##
 ## 对应 Chief 定的五条里的第 1、2、3 条里**能在引擎内验的部分**：
@@ -22,6 +22,39 @@ init -1 python:
         if not cond:
             raise Exception("差异断言失败：" + msg)
 
+    def _div_story_refs():
+        """扫 story/ 下 ai_play / aig.run 的字面量 beat id。
+
+        返回 (refs, has_dynamic, file_count, pool_ids)。
+        定义在 init 里的普通函数，推导式能正常用；测试用例的 python 块是
+        exec(globals, locals) 跑的，那里不能用推导式（见下面用例里的注释）。
+        """
+        import re
+        pat = re.compile(r"""(?:ai_play|aig\.run)\(\s*["']([a-z0-9_]+)["']""")
+        dyn = re.compile(r"""(?:ai_play|aig\.run)\(\s*[A-Za-z_]""")
+        refs = set()
+        has_dyn = False
+        files = 0
+        for f in renpy.list_files():
+            if not (f.startswith("story/") and f.endswith(".rpy")):
+                continue
+            try:
+                fh = renpy.loader.load(f)
+                blob = fh.read()
+                fh.close()
+            except Exception:
+                continue
+            text = blob.decode("utf-8", "replace") if not isinstance(blob, str) else blob
+            files += 1
+            refs.update(pat.findall(text))
+            if dyn.search(text):
+                has_dyn = True
+        ## 变量派发点能产出的 id 集合（事件池），归一化成普通 str 的集合
+        pool = {}
+        for k in (globals().get("EVENT_POOL") or {}):
+            pool[str(k)] = True
+        return refs, has_dyn, files, pool
+
 
 testsuite ai_diversity:
     teardown:
@@ -37,9 +70,11 @@ testcase div_same_seed_identical:
     $ aig.clear_pending()
     $ store.ai_cache = {}
     $ store.ai_template = {}
-    $ _r1 = aig.run("t1_free", "same", fake="ok", blocking=True)
+    $ _saveturn_div = store.turn
+    $ store.turn = 3
+    $ _r1 = aig.run("t3_parent", "same", fake="ok", blocking=True)
     $ _n1 = aig.status()["requests"]
-    $ _r2 = aig.run("t1_free", "same", fake="ok", blocking=True)
+    $ _r2 = aig.run("t3_parent", "same", fake="ok", blocking=True)
     $ _n2 = aig.status()["requests"]
     $ _div_test(_r1["source"] == "ai", "第一遍应走现场请求，实际 %r / %r" % (_r1["source"], _r1["notes"]))
     $ _div_test(_r2["source"] == "cache", "第二遍应命中缓存，实际 %r / %r" % (_r2["source"], _r2["notes"]))
@@ -48,6 +83,7 @@ testcase div_same_seed_identical:
     $ _div_test(_n2 == _n1, "第二遍又发了请求：%d -> %d" % (_n1, _n2))
     $ store.ai_cache = {}
     $ store.ai_template = {}
+    $ store.turn = _saveturn_div
 
 
 ## 2. 换 seed：key 必须不同，且不许命中上一局写进去的文本
@@ -67,9 +103,9 @@ testcase div_seed_separates_runs:
 ## 3. 措辞变、结构不变：同一拍两份不同说法，形状一致且重合度 ≤ 0.4
 testcase div_shape_and_wording:
     python:
-        ## actions 直接给这一拍声明两个分支 id（t1_ceremony 不在 BEAT_CHOICES 里，
+        ## actions 直接给这一拍声明两个分支 id（t1_free 不在 BEAT_CHOICES 里，
         ## 默认是全量 ACTIONS，这里要的是「剧情分支 id」那种形状）。
-        _ctx = ai_ctx("t1_ceremony", actions=("reveal", "ignore"), expect_choices=True)
+        _ctx = ai_ctx("t1_free", actions=("reveal", "ignore"), expect_choices=True)
         _a = (
             '{"lines":['
             '{"speaker":"inner","text":"（门轴响了一声，琴声就停了。）"},'
@@ -165,44 +201,89 @@ testcase div_replay_key_independent:
         _div_test(store.study == _saved_study, "回放改动了 store 的数值")
 
 
-## 7. 细节位：读**真实** BEAT_DETAILS，不看注入表
+## 7. 细节位：读**真实** BEAT_DETAILS，且清单来自 story 的调用点，不写死
 ##    Chief 定的口径：每个会播的 AI 拍至少 2 条，seed 0..n-1 必须逐个命中、不许越界。
-##    这条今天应该是红的——大纲 §2.6 的 132 条还在 md 里，没编译进代码。
-##    红着比绿着有用：改成注入表就是「测试全绿但差异已死」。
 testcase div_detail_coverage:
     python:
-        ## 清单取自 story/*.rpy 的 ai_play 调用点（29 处、28 个 id）。
-        ## 剧本加拍要同步这张表；拍不在这张表里就说明它不会被播，也就不用有细节。
-        _used = (
-            "t2_welcome", "t2_piano", "t2_gala", "t2_exam", "t2_call",
-            "t3_exam", "t3_parent", "t3_piano",
-            "t4_artfair", "t4_exam", "t4_newyear", "t4_father",
-            "t5_move", "t5_office", "t5_mother",
-            "t6_sports", "t6_run", "t6_club",
-            "t7_hall", "t7_talk",
-            "t8_exam", "t8_choice_her", "t8_subject", "t8_form",
-            "t8_true", "t8_end_a", "t8_end_b", "t8_end_c",
-        )
+        ## 清单不写死：取 story/ 里真被调用的拍 ∩ 已登记表。
+        ## 写死过一次 28 个 id，压拍后有 10 个永远不会播，等于在验一批死 id。
+        _refs, _dyn, _scanned, _pool = _div_story_refs()
+        _used = []
+        for _b in _refs:
+            if _b in AI_BEATS:
+                _used.append(_b)
+        _used.sort()
+
         _real = getattr(aig, "BEAT_DETAILS", {}) or {}
-        _thin = [b for b in _used if len(_real.get(b, ()) or ()) < 2]
+        _thin = []
+        for _b in _used:
+            if len(_real.get(_b, ()) or ()) < 2:
+                _thin.append(_b)
         _div_test(
             not _thin,
             "%d 个会播的拍缺细节（每拍至少 2 条）：%r；BEAT_DETAILS 现在有 %d 拍。"
-            "这是设计上的红：等 md 走 build_prompts.py 编译进 prompts_data.rpy 就会变绿"
+            "这是设计上的红：md 走 build_prompts.py 编译进 prompts_data.rpy 才会变绿"
             % (len(_thin), _thin, len(_real)),
         )
 
         ## 有数据的拍：seed 取模必须正好遍历它自己那几条，不越到别的拍
         for _b in _used:
             _d = _real.get(_b) or ()
-            _got = [aig.detail_for(_b, _s) for _s in range(len(_d))]
+            _got = []
+            for _s in range(len(_d)):
+                _got.append(aig.detail_for(_b, _s))
             _div_test(_got == list(_d),
                       "%s 的 seed 取模没覆盖全：%r vs %r" % (_b, _got, list(_d)))
+
+
+## 9. 死登记：AI_BEATS 里登记的每个拍，story/ 里必须至少有一处真调用
+##    今天已经踩过三种同形的空转：文档写了代码没有、登记了抽不到、合拍后旧 id 没人调。
+##    静态扫源码比「跑一遍看有没有播到」可靠：剧情有分支，跑一遍覆盖不全。
+testcase div_no_dead_beats:
+    python:
+        _refs, _has_dynamic, _scanned, _pool = _div_story_refs()
+
+        ## 自由段的拍由 free_scene 取模板，不走 ai_play，不参与这条
+        _registered = []
+        for _b in AI_BEATS.keys():
+            if not _b.endswith("_free"):
+                _registered.append(_b)
+        _registered.sort()
+
+        ## 豁免只认一条证据：存在变量派发点，且 id 属于该派发点真正能产出的集合（事件池）。
+        ## 不写「允许清单」——允许清单只会越来越长；也不按前缀整族豁免。
+        _dyn_ok = set()
+        for _b in _registered:
+            if _has_dynamic and str(_b) in _pool:
+                _dyn_ok.add(_b)
+
+        ## 分类：turn >= 9 是 §5.2 计划里还没铺的拍（待铺，不算死数据）；
+        ## turn <= 8 是已交付回合，登记了却没人调就是死数据。label 一铺，待铺自动变引用。
+        _pending = []
+        _dead = []
+        for _b in _registered:
+            if _b in _refs or _b in _dyn_ok:
+                continue
+            if int(AI_BEATS[_b].get("turn", 99)) >= 9:
+                _pending.append(_b)
+            else:
+                _dead.append(_b)
+
+        print("BEATS registered=%d scanned=%d literal_refs=%d exempt=%d pending=%d dead=%d"
+              % (len(_registered), _scanned, len(_refs), len(_dyn_ok), len(_pending), len(_dead)))
+        print("  exempt rule: 变量派发点 x EVENT_POOL(%d) -> 豁免 %d；"
+              "pending rule: turn>=9 视为 §5.2 待铺" % (len(_pool), len(_dyn_ok)))
+        _div_test(_scanned > 0, "一个 story 文件都没扫到，扫源码这条路本身失效了")
+        _div_test(not _dead,
+                  "%d 个拍在已交付的回合里登记了却没人调（死数据）：%r"
+                  % (len(_dead), _dead))
 
 
 ## 8. 差异观测命令的载荷（.\dev.ps1 diversity 才跑它）：只打数、只在真数据缺位时判红
 ##    Jaccard 那条在这里也只是打印，不设 0.4 硬门——0.4 实际测的是「模型重写了多少」，
 ##    不是细节位能保证的（算法见 玩法策划 的估算：一条 16 字细节只影响约 17 个二元组）。
+##    注意：这几段刻意不用推导式——测试的 python 块是 exec(globals, locals) 跑的，
+##    推导式按 globals 找名字，看不到局部变量，会报 NameError。
 testcase diversity_report:
     python:
         _real = getattr(aig, "BEAT_DETAILS", {}) or {}

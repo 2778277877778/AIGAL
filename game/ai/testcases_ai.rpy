@@ -1,4 +1,4 @@
-################################################################################
+﻿################################################################################
 ## ai/testcases_ai.rpy —— provider / cache 两层的自测（M1）
 ##
 ## 用法：.\dev.ps1 test ai_layer
@@ -46,16 +46,21 @@ testsuite ai_layer:
 
 
 ## 假请求能走完，且回来的正文能过 schema
+## 夹具用 t3_parent：自由段改走模板池以后 t*_free 不再有调用点，会被清掉登记。
+## 它没有 BEAT_CHOICES，假正文里的 study 才不会被选项白名单判掉。
 testcase fake_ok:
     $ aig.reset_circuit()
+    $ _saveturn_ok = store.turn
+    $ store.turn = 3
     $ _j = aig.start_fake("ok", delay=0.2)
     $ _r = aig.wait(_j, timeout=3.0, blocking=True)
     $ _aig_test(_j != 0, "start_fake 没给 id")
     $ _aig_test(_r["state"] == "done", "fake ok 没跑完：%r" % (_r,))
-    $ _v = ai_validate(_r["text"], ai_ctx("t1_free"))
+    $ _v = ai_validate(_r["text"], ai_ctx("t3_parent"))
     $ _aig_test(_v["ok"], "schema 拒了 fake ok：%s / %r" % (_v["reason"], _v["notes"]))
     $ _aig_test(len(_v["lines"]) == 1, "行数不对：%r" % (_v["lines"],))
     $ _aig_test(_v["lines"][0]["speaker"] == "zm", "speaker 不对")
+    $ store.turn = _saveturn_ok
 
 
 ## 到点不结束的任务判 timeout，且不会把游戏卡死
@@ -138,13 +143,16 @@ testcase skip_blocks_request:
 testcase pipeline_fake:
     $ aig.reset_circuit()
     $ aig.clear_pending()
+    $ _saveturn_pf = store.turn
+    $ store.turn = 3
     $ _n0 = aig.status()["requests"]
-    $ _d1 = aig.run("t1_free", fake="ok", blocking=True)
+    $ _d1 = aig.run("t3_parent", fake="ok", blocking=True)
     $ _aig_test(_d1["source"] == "ai", "第一次应走 ai，实际 %r（notes=%r）" % (_d1["source"], _d1["notes"]))
     $ _aig_test(len(_d1["lines"]) >= 1, "没有台词：%r" % (_d1,))
-    $ _d2 = aig.run("t1_free", fake="ok", blocking=True)
+    $ _d2 = aig.run("t3_parent", fake="ok", blocking=True)
     $ _aig_test(_d2["source"] == "cache", "第二次应命中缓存，实际 %r" % (_d2["source"],))
     $ _aig_test(aig.status()["requests"] == _n0 + 1, "第二次不该再发请求：%r" % (aig.status()["requests"],))
+    $ store.turn = _saveturn_pf
 
 
 ## 预取：后台买好，进拍时直接取，不重复买
@@ -165,7 +173,7 @@ testcase pipeline_prefetch:
 testcase pipeline_template:
     $ aig.reset_circuit()
     $ aig.cfg()["api_key"] = ""
-    $ _d = aig.run("t1_committee", blocking=True)
+    $ _d = aig.run("t1_free", blocking=True)
     $ _aig_test(_d["source"] == "template", "无 key 应走模板，实际 %r" % (_d["source"],))
     $ _aig_test(len(_d["lines"]) >= 1, "模板没有台词")
 
@@ -186,13 +194,13 @@ testcase pipeline_narrative:
 ## 「每局不同、同存档相同」的最小验证：新开一局的 seed 必须不同，且必须进 key
 testcase seed_varies_per_run:
     $ store.ai_seeds = {}
-    $ _s1 = aig.seed_for("t1_free")
-    $ _s2 = aig.seed_for("t1_free")
+    $ _s1 = aig.seed_for("t3_parent")
+    $ _s2 = aig.seed_for("t3_parent")
     $ _aig_test(_s1 == _s2, "同一局内同一拍的 seed 不能变：%r vs %r" % (_s1, _s2))
     $ store.ai_seeds = {}
-    $ _s3 = aig.seed_for("t1_free")
+    $ _s3 = aig.seed_for("t3_parent")
     $ _aig_test(_s1 != _s3, "两次新开局 seed 撞了，两局台词会完全一样")
-    $ _aig_test(aig.key("t1_free", _s1) != aig.key("t1_free", _s3), "seed 没进 cache key")
+    $ _aig_test(aig.key("t3_parent", _s1) != aig.key("t3_parent", _s3), "seed 没进 cache key")
 
 
 ## 自由行动变体池：起步位随机（每局不同），局内顺序确定，游标进 store
@@ -214,10 +222,10 @@ testcase sticky_template:
     $ aig.reset_circuit()
     $ aig.cfg()["api_key"] = ""
     $ store.ai_template = {}
-    $ _d1 = aig.run("t1_committee", blocking=True)
+    $ _d1 = aig.run("t1_free", blocking=True)
     $ _aig_test(_d1["source"] == "template", "无 key 应走模板：%r" % (_d1["source"],))
     $ _n = aig.status()["requests"]
-    $ _d2 = aig.run("t1_committee", blocking=True)
+    $ _d2 = aig.run("t1_free", blocking=True)
     $ _aig_test(_d2["source"] == "template", "第二次也该是模板：%r" % (_d2["source"],))
     $ _aig_test(aig.status()["requests"] == _n, "已落定的降级不该再发请求")
     $ _aig_test(len(store.ai_template) >= 1, "降级决定没写进存档")
@@ -231,7 +239,7 @@ testcase skip_also_sticky:
     $ aig.cfg()["api_key"] = "sk-test-not-used"
     $ store.ai_template = {}
     $ renpy.config.skipping = True
-    $ _d = aig.run("t1_committee", blocking=True)
+    $ _d = aig.run("t1_free", blocking=True)
     $ renpy.config.skipping = None
     $ aig.cfg()["api_key"] = ""
     $ _aig_test(_d["source"] == "template", "跳过应走模板：%r" % (_d["source"],))
@@ -244,11 +252,11 @@ testcase reroll_clears_sticky:
     $ aig.reset_circuit()
     $ aig.cfg()["api_key"] = ""
     $ store.ai_template = {}
-    $ _d1 = aig.run("t1_committee", blocking=True)
+    $ _d1 = aig.run("t1_free", blocking=True)
     $ _aig_test(len(store.ai_template) == 1, "降级没落档：%r" % (len(store.ai_template),))
-    $ aig.reroll("t1_committee")
+    $ aig.reroll("t1_free")
     $ _aig_test(len(store.ai_template) == 0, "reroll 没清掉降级记录")
-    $ _d2 = aig.run("t1_committee", blocking=True)
+    $ _d2 = aig.run("t1_free", blocking=True)
     $ _aig_test(len(store.ai_template) == 1, "reroll 后应重新落一条")
     $ store.ai_template = {}
     $ aig.cfg()["api_key"] = ""
@@ -256,10 +264,10 @@ testcase reroll_clears_sticky:
 
 ## 种子化的环境细节：同 seed 稳定、不同 seed 不同、没配就返回空
 testcase detail_seeded:
-    $ _tab = {"t1_free": ("雨停了", "走廊有水汽", "灯闪了一下")}
-    $ _a = aig.detail_for("t1_free", 1, table=_tab)
-    $ _aig_test(_a == aig.detail_for("t1_free", 1, table=_tab), "同 seed 的细节必须稳定")
-    $ _aig_test(_a != aig.detail_for("t1_free", 2, table=_tab), "不同 seed 应取到不同细节")
+    $ _tab = {"t3_parent": ("雨停了", "走廊有水汽", "灯闪了一下")}
+    $ _a = aig.detail_for("t3_parent", 1, table=_tab)
+    $ _aig_test(_a == aig.detail_for("t3_parent", 1, table=_tab), "同 seed 的细节必须稳定")
+    $ _aig_test(_a != aig.detail_for("t3_parent", 2, table=_tab), "不同 seed 应取到不同细节")
     $ _aig_test(aig.detail_for("nope", 1, table=_tab) == "", "没配细节的拍应返回空")
 
 
@@ -279,9 +287,9 @@ testcase reroll_last_works:
     $ aig.reset_circuit()
     $ aig.cfg()["api_key"] = ""
     $ store.ai_template = {}
-    $ _d = aig.run("t1_committee", blocking=True)
+    $ _d = aig.run("t1_free", blocking=True)
     $ _now = aig.degraded_now()
-    $ _aig_test(_now.get("beat") == "t1_committee", "没记下被钉住的拍：%r" % (_now,))
+    $ _aig_test(_now.get("beat") == "t1_free", "没记下被钉住的拍：%r" % (_now,))
     $ _aig_test(aig.reroll_last() is True, "reroll_last 应返回 True")
     $ _aig_test(len(store.ai_template) == 0, "reroll_last 没清干净")
     $ _aig_test(aig.reroll_last() is False, "没东西可重跑时应返回 False")
