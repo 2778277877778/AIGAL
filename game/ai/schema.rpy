@@ -29,52 +29,32 @@ init -1 python:
     ##
     ## TRUE_FLAGS / confession / piano_crisis 永远不许进这张表，init 1 那段有断言。
     AI_BEATS = {
-        ## T1 九月
-        "t1_report":      dict(turn=1, flags=(), expect_choices=False),
-        "t1_ceremony":    dict(turn=1, flags=(), expect_choices=True),
-        "t1_military":    dict(turn=1, flags=(), expect_choices=True),
-        "t1_committee":   dict(turn=1, flags=(), expect_choices=False),
-        "t1_night_piano": dict(turn=1, flags=(), expect_choices=True),
-        "t1_free":        dict(turn=1, flags=(), expect_choices=True),
+        ## T1 九月：整段手写，0 次 AI 调用（创立者要求「开篇用原来的」），不登记拍。
+        ## 自由段走模板池，t*_free 也不占登记表。
 
-        ## T2 十月
-        "t2_welcome":     dict(turn=2, flags=(), expect_choices=False),
-        "t2_piano":       dict(turn=2, flags=(), expect_choices=True),
-        "t2_gala":        dict(turn=2, flags=(), expect_choices=False),
-        "t2_exam":        dict(turn=2, flags=(), expect_choices=False),
-        "t2_call":        dict(turn=2, flags=(), expect_choices=True),
-        "t2_free":        dict(turn=2, flags=(), expect_choices=True),
+        ## T2 十月（合并后只剩主拍 + 楼梯间；考试不调 AI）
+        "t2_piano":       dict(turn=2, flags=(), expect_choices=False),
+        "t2_call":        dict(turn=2, flags=(), expect_choices=False),
 
-        ## T3 十一月
-        "t3_exam":        dict(turn=3, flags=(), expect_choices=False),
+        ## T3 十一月（旧琴房并进 T2 主拍；考试不调 AI）
         "t3_parent":      dict(turn=3, flags=(), expect_choices=False),
-        "t3_piano":       dict(turn=3, flags=(), expect_choices=True),
 
-        ## T4 十二月
-        "t4_artfair":     dict(turn=4, flags=(), expect_choices=True),
-        "t4_exam":        dict(turn=4, flags=(), expect_choices=False),
-        "t4_newyear":     dict(turn=4, flags=(), expect_choices=True),
-        "t4_father":      dict(turn=4, flags=(), expect_choices=False),
+        ## T4 十二月（元旦回礼、寒假前父亲并进主拍；考试不调 AI）
+        "t4_artfair":     dict(turn=4, flags=(), expect_choices=False),
 
-        ## T5 三月
-        "t5_move":        dict(turn=5, flags=(), expect_choices=True),
-        "t5_office":      dict(turn=5, flags=(), expect_choices=False),
+        ## T5 三月（曾老师并进主拍）
+        "t5_move":        dict(turn=5, flags=(), expect_choices=False),
         "t5_mother":      dict(turn=5, flags=(), expect_choices=False),
 
-        ## T6 四月
-        "t6_sports":      dict(turn=6, flags=(), expect_choices=False),
-        "t6_run":         dict(turn=6, flags=(), expect_choices=False),
-        "t6_club":        dict(turn=6, flags=(), expect_choices=True),
+        ## T6 四月（开幕式、八百米并进主拍）
+        "t6_club":        dict(turn=6, flags=(), expect_choices=False),
 
-        ## T7 五月
+        ## T7 五月（夜谈并进主拍）
         "t7_hall":        dict(turn=7, flags=(), expect_choices=False),
-        "t7_talk":        dict(turn=7, flags=(), expect_choices=True),
 
-        ## T8 六月（选科 + 结局；结局拍在下面单独一段）
-        "t8_exam":        dict(turn=8, flags=(), expect_choices=False),
-        "t8_choice_her":  dict(turn=8, flags=(), expect_choices=False),
-        "t8_subject":     dict(turn=8, flags=(), expect_choices=True),
-        "t8_form":        dict(turn=8, flags=(), expect_choices=True),
+        ## T8 六月（她的选科并进 t8_subject 主拍；考试不调 AI）
+        "t8_subject":     dict(turn=8, flags=(), expect_choices=False),
+        "t8_form":        dict(turn=8, flags=(), expect_choices=False),
 
         ## T8 结局。正文比拍内长，走 ENDING_* 那套上限（160 字/行、600 字合计），
         ## 别让它跟拍内那套 250 字共用——截到 250 就是整局最后一段正文没了。

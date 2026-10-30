@@ -98,34 +98,26 @@ init -1 python:
         return "%s：%s。" % (REL_LABEL[sid], REL_TIERS[rel_tier(sid)])
 
 
-    ## ── 好感只由玩家行为给（《剧情大纲_三年_v1.md》§5.1）──────────────────
+    ## ── 好感只由玩家行为给（《剧情大纲_三年_v1.md》§5.1、§5.3）──────────────
     ## 里程碑只置 Flag、不加 rel；rel 表示「你在谁身上花了时间」。
-    ## 自由行动落在某条线的节点 → 该线 +5，每月每条线最多计 1 次。
+    ## 来源只有两个：下面这张行动表（每月每线一次）+ 事件选择点（events.rpy）。
+    ## 列表照 §5.3 第二节抄：周墨 5 个、夏幸悠 1 个、温以宁 1 个；其余一律中立。
     REL_PER_ACTION = 5
 
-    ACTION_NODE = {
-        "attend_class": "classroom", "ask_zhoumo": "classroom",
-        "study": "library", "study_with": "library",
-        "eat_canteen": "canteen", "buy_shop": "shop",
-        "do_sport": "field", "watch_basketball": "field",
-        "rest_dorm": "dorm", "weekend_stay": "dorm",
-        "listen_piano": "piano_room",
-        "visit_auditorium": "auditorium",
-        "visit_club": "music_room",
-    }
-
-    NODE_LINE = {
-        "art_building": "zm", "piano_room": "zm", "auditorium": "zm", "music_room": "zm",
-        "field": "xia",
-        "library": "x", "shop": "x",
-        ## classroom / dorm / canteen 中立，不给任何一线
+    REL_ACTIONS = {
+        "zm": ("ask_zhoumo", "study_with", "listen_piano", "visit_auditorium", "visit_club"),
+        "xia": ("do_sport",),
+        "x": ("study",),
     }
 
 
     def add_rel_from_action(action_key):
         """一次自由行动给对应线 +REL_PER_ACTION；同月同线只计一次。返回实际增量。"""
-        node = ACTION_NODE.get(action_key)
-        sid = NODE_LINE.get(node)
+        sid = None
+        for line, keys in REL_ACTIONS.items():
+            if action_key in keys:
+                sid = line
+                break
         if not sid:
             return 0
         if store.rel_month.get(sid) == store.turn:
@@ -133,6 +125,51 @@ init -1 python:
         store.rel_month = dict(store.rel_month, **{sid: store.turn})
         add_rel(sid, REL_PER_ACTION)
         return REL_PER_ACTION
+
+
+    ## ── 里程碑拍 → (sid, idx)（《剧情大纲_三年_v1.md》§5.2 第六节）──────────
+    ## 按「这一拍的内容」对，不按回合号对：旧 T1–T8 的月份顺序和 36 格不同。
+    ## 周墨线 10 条是现在就能接的上限；夏 9 / 温 8 等 T9+ 的 label 铺完再用下面预登记的行。
+    MILESTONE_BEATS = {
+        "t2_piano":      ("zm", 2),   # 旧琴房撞见她弹
+        "t3_parent":     ("zm", 3),   # 家长会 / 她父亲的冷淡
+        "t5_move":       ("zm", 4),   # 琴房清空通知
+        "t8_subject":    ("zm", 5),   # 选科表：她想学音乐被否
+        "t4_artfair":    ("zm", 6),   # 艺术节伴奏被听见
+        "t5_mother":     ("zm", 7),   # 母亲第一次替她说话
+        "t6_club":       ("zm", 8),   # 音乐社 / 她当社长
+        "t7_hall":       ("zm", 9),   # 研学·音乐厅
+        "t8_form":       ("zm", 10),  # 志愿表：他替她说话
+
+        ## T9+ 的拍（§1.2）：label 铺到那一格时，同一行调用即可生效
+        "t9_injury":     ("xia", 3),
+        "t10_subject":   ("zm", 5),
+        "t13_artfair":   ("zm", 6),
+        "t14_coach":     ("xia", 4),
+        "t15_ask":       ("x", 3),
+        "t16_mother":    ("zm", 7),
+        "t17_parent":    ("xia", 5),
+        "t18_half":      ("x", 4),
+        "t19_club":      ("zm", 8),
+        "t20_quit":      ("xia", 6),
+        "t21_transfer":  ("x", 5),
+        "t25_hall":      ("zm", 9),
+        "t26_entry":     ("xia", 7),
+        "t27_watch":     ("x", 6),
+        "t28_form":      ("zm", 10),
+        "t29_exam":      ("xia", 8),
+        "t30_offer":     ("x", 7),
+        "t32_choice":    ("xia", 9),
+        "t33_last":      ("x", 8),
+    }
+
+
+    def mark_milestone_for_beat(beat_id):
+        """剧本在播完这一拍后调；没有映射的拍返回 0。"""
+        m = MILESTONE_BEATS.get(beat_id)
+        if not m:
+            return 0
+        return mark_milestone(m[0], m[1])
 
 
     def lock_route():
