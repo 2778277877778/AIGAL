@@ -284,12 +284,14 @@ init -6 python in aig:
                 "elapsed": (job.ended or time.time()) - job.started,
             }
 
-    def wait(jid, timeout=None, tick=None, blocking=False):
+    def wait(jid, timeout=None, tick=None, blocking=False, soft=False):
         """主线程等结果。返回 result() 的字典型。
 
         timeout  总时限，默认 TIMEOUT。到点把任务标 timeout 并返回，不阻塞游戏。
         tick     每轮回调一次，参数是已等待秒数。前端拿它更新「生成中…」的进度。
         blocking 测试专用：用 time.sleep 轮询，不产生交互（testcase 里没有界面循环）。
+        soft     True = 这次到点不算端点失败（director 的 8s 软降级用）。
+                 8 秒没回来只能说明它慢，不能说明它坏，不能拿去累计熔断。
         """
         if timeout is None:
             timeout = TIMEOUT
@@ -308,7 +310,7 @@ init -6 python in aig:
                 break
             now = time.time()
             if now >= deadline:
-                _abandon(job)
+                _abandon(job, "cancelled" if soft else "timeout")
                 break
             if tick is not None:
                 try:

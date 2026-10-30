@@ -61,6 +61,22 @@ switch ($Command) {
         & $py (Join-Path $sdk 'renpy.py') $repo distribute
     }
     default {
+        ## 人物卡 / 提示词的计数与 id 一致性（文案策划 的检查器）。
+        ## 跑在 lint 之前：计数漂了就没必要再看脚本。
+        if ($Command -in @('lint', 'test')) {
+            if (Get-Command python -ErrorAction SilentlyContinue) {
+                $cardOut = & python (Join-Path $repo 'tests\check_cards.py') 2>&1
+                $cardOut | ForEach-Object { Write-Host $_ }
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Host "!! 人物卡/提示词检查器失败：python tests/check_cards.py" -ForegroundColor Red
+                    exit 1
+                }
+            }
+            else {
+                Write-Host "跳过人物卡检查器：PATH 里没有 python" -ForegroundColor Yellow
+            }
+        }
+
         $argList = @((Join-Path $sdk 'renpy.py'), $repo, $Command)
         if ($Command -eq 'test' -and $Name) { $argList += $Name }
 

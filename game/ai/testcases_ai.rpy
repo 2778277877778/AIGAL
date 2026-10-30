@@ -132,3 +132,48 @@ testcase skip_blocks_request:
     $ _aig_test(aig.start_http("http://127.0.0.1:9/x", {}, {}) == 0, "跳过中还发了请求")
     $ renpy.config.skipping = None
     $ _aig_test(aig.allowed(), "恢复正常后应能请求")
+
+
+## 导演层全链路：买一次 → 校验 → 落缓存 → 第二次直接命中，不再发请求
+testcase pipeline_fake:
+    $ aig.reset_circuit()
+    $ aig.clear_pending()
+    $ _n0 = aig.status()["requests"]
+    $ _d1 = aig.run("t1_night_piano", fake="ok", blocking=True)
+    $ _aig_test(_d1["source"] == "ai", "第一次应走 ai，实际 %r（notes=%r）" % (_d1["source"], _d1["notes"]))
+    $ _aig_test(len(_d1["lines"]) >= 1, "没有台词：%r" % (_d1,))
+    $ _d2 = aig.run("t1_night_piano", fake="ok", blocking=True)
+    $ _aig_test(_d2["source"] == "cache", "第二次应命中缓存，实际 %r" % (_d2["source"],))
+    $ _aig_test(aig.status()["requests"] == _n0 + 1, "第二次不该再发请求：%r" % (aig.status()["requests"],))
+
+
+## 预取：后台买好，进拍时直接取，不重复买
+testcase pipeline_prefetch:
+    $ aig.reset_circuit()
+    $ aig.clear_pending()
+    $ _jid = aig.prefetch("t1_free", fake="ok")
+    $ _aig_test(_jid != 0, "预取没发出去")
+    $ _d = aig.run("t1_free", fake="ok", blocking=True)
+    $ _aig_test(_d["source"] in ("prefetch", "cache"), "应吃到预取，实际 %r" % (_d["source"],))
+    $ aig.clear_pending()
+
+
+## 没 key 走模板：不崩、不卡、有台词
+testcase pipeline_template:
+    $ aig.reset_circuit()
+    $ aig.cfg()["api_key"] = ""
+    $ _d = aig.run("t1_committee", blocking=True)
+    $ _aig_test(_d["source"] == "template", "无 key 应走模板，实际 %r" % (_d["source"],))
+    $ _aig_test(len(_d["lines"]) >= 1, "模板没有台词")
+
+
+## 提示词数据确实编译进来了：公共四段 + 周墨八拍 + 每个 speaker 一段
+testcase prompt_data:
+    $ _aig_test(len(aig.PARAS) >= 25, "段落数不对：%d" % len(aig.PARAS))
+    $ _aig_test(all(k in aig.PARAS for k in ("P_A", "P_B", "P_C", "P_D")), "公共段缺")
+    $ _aig_test(all(("P_zm_%d" % n) in aig.PARAS for n in range(1, 9)), "周墨八拍缺")
+    $ _m = aig.build_messages("t1_night_piano", 1, {"study": 30, "stress": 10, "stamina": 40, "money": 100, "ap": 3, "flags": [], "name": "测试", "actions": ("study",)})
+    $ _aig_test(len(_m) == 2 and _m[0]["role"] == "system", "消息结构不对")
+    $ _aig_test("只输出一个 JSON 对象" in _m[1]["content"], "输出契约没进 user 消息")
+    $ _aig_test(_m[1]["content"].index("出场角色段") < _m[1]["content"].index("只输出一个 JSON 对象"),
+                 "输出契约没排在角色段之后（近因效应就没了）")
