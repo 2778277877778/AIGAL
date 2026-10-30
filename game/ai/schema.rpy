@@ -43,6 +43,37 @@ init -1 python:
         "t2_call":        dict(turn=2, flags=(), expect_choices=True),
         "t2_free":        dict(turn=2, flags=(), expect_choices=True),
 
+        ## T3 十一月
+        "t3_exam":        dict(turn=3, flags=(), expect_choices=False),
+        "t3_parent":      dict(turn=3, flags=(), expect_choices=False),
+        "t3_piano":       dict(turn=3, flags=(), expect_choices=True),
+
+        ## T4 十二月
+        "t4_artfair":     dict(turn=4, flags=(), expect_choices=True),
+        "t4_exam":        dict(turn=4, flags=(), expect_choices=False),
+        "t4_newyear":     dict(turn=4, flags=(), expect_choices=True),
+        "t4_father":      dict(turn=4, flags=(), expect_choices=False),
+
+        ## T5 三月
+        "t5_move":        dict(turn=5, flags=(), expect_choices=True),
+        "t5_office":      dict(turn=5, flags=(), expect_choices=False),
+        "t5_mother":      dict(turn=5, flags=(), expect_choices=False),
+
+        ## T6 四月
+        "t6_sports":      dict(turn=6, flags=(), expect_choices=False),
+        "t6_run":         dict(turn=6, flags=(), expect_choices=False),
+        "t6_club":        dict(turn=6, flags=(), expect_choices=True),
+
+        ## T7 五月
+        "t7_hall":        dict(turn=7, flags=(), expect_choices=False),
+        "t7_talk":        dict(turn=7, flags=(), expect_choices=True),
+
+        ## T8 六月（选科 + 结局；结局拍在下面单独一段）
+        "t8_exam":        dict(turn=8, flags=(), expect_choices=False),
+        "t8_choice_her":  dict(turn=8, flags=(), expect_choices=False),
+        "t8_subject":     dict(turn=8, flags=(), expect_choices=True),
+        "t8_form":        dict(turn=8, flags=(), expect_choices=True),
+
         ## T8 结局。正文比拍内长，走 ENDING_* 那套上限（160 字/行、600 字合计），
         ## 别让它跟拍内那套 250 字共用——截到 250 就是整局最后一段正文没了。
         "t8_true":        dict(turn=8, flags=(), expect_choices=False, scope="ending"),

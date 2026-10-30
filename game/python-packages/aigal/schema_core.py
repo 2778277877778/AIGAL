@@ -61,6 +61,8 @@ NAME_TOKEN = "{name}"
 ALL_SPEAKERS = (
     "mc", "zm", "zzb", "zeng", "stu_a", "stu_b", "bro", "inner",
     "xia", "kong", "x", "zm_dad", "zm_mom",
+    ## 结构性 id：正体旁白，不是角色。不进人物卡，但任何一拍都可能出现。
+    "nar",
 )
 
 _CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")

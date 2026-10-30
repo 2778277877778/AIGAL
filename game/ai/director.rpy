@@ -15,6 +15,10 @@
 ##   拍 1          上个月最后一点 AP 用掉时
 ################################################################################
 
+## 自由行动变体池的轮转游标：action_key -> 已用次数。进存档，读档后接着上次的顺序。
+default ai_free_counts = {}
+
+
 init -1 python in aig:
 
     SOFT_TIMEOUT = 8.0
@@ -46,7 +50,7 @@ init -1 python in aig:
 
     def api_ready():
         c = cfg()
-        return bool((c.get("api_key") or "").strip()) and bool((c.get("base_url") or "").strip())
+        return bool(key_effective().strip()) and bool((c.get("base_url") or "").strip())
 
     def _state():
         s = renpy.store
@@ -73,7 +77,7 @@ init -1 python in aig:
             body["response_format"] = {"type": "json_object"}
         url = (c.get("base_url") or "").rstrip("/") + "/chat/completions"
         headers = {
-            "Authorization": "Bearer " + (c.get("api_key") or ""),
+            "Authorization": "Bearer " + key_effective(),
             "Content-Type": "application/json",
         }
         return start_http(url, headers, body, tag="chat")
@@ -98,7 +102,7 @@ init -1 python in aig:
         }
 
     def _template_pack(beat_id, ctx, why):
-        t = template(beat_id)
+        t = template(beat_id, (ctx or {}).get("choice_path", ""))
         return {
             "source": "template",
             "lines": t.get("lines") or [],
@@ -135,6 +139,7 @@ init -1 python in aig:
         source 只会是 cache / prefetch / ai / ai_retry / template 之一。
         剧本不要按 source 分支——降级文本和 AI 文本同构。
         """
+        renpy.store.trace_beat(beat_id)
         ok, why = renpy.store.ai_beat_ok(beat_id)
         if not ok:
             return _template_pack(beat_id, _fake_ctx(beat_id), why)
@@ -142,6 +147,9 @@ init -1 python in aig:
         b = renpy.store.ai_beat(beat_id)
         turn = b["turn"]
         ctx = _ctx(beat_id, expect_choices)
+        ## choice_path 要跟着 ctx 走：降级取模板时靠它选「拍 + 分支」那一版，
+        ## 少了它，自由行动 11 个动作会全部渲染成同一个拍默认段。
+        ctx["choice_path"] = choice_path
         seed = seed_for(beat_id, choice_path)
         k = key(beat_id, seed, choice_path)
 
@@ -156,7 +164,7 @@ init -1 python in aig:
         ## 2. 预取在飞：等它，等不到就往下走现场请求
         p = PENDING.pop(k, None)
         if p is not None:
-            r = wait(p["jid"], timeout=TIMEOUT, blocking=blocking)
+            r = wait_ui(p["jid"], timeout=TIMEOUT, blocking=blocking)
             if r["state"] == "done":
                 v = renpy.store.ai_validate(r["text"], ctx)
                 if v["ok"]:
@@ -174,7 +182,7 @@ init -1 python in aig:
         if not jid:
             return _template_pack(beat_id, ctx, "not_sent")
 
-        r = wait(jid, timeout=SOFT_TIMEOUT, soft=True, blocking=blocking)
+        r = wait_ui(jid, soft=True, blocking=blocking)
         if r["state"] != "done":
             ## 8s 软降级：只提示一行，不打断；迟到成功也不会再把这一拍换回来
             return _template_pack(beat_id, ctx, "soft_" + str(r["state"]))
@@ -191,7 +199,7 @@ init -1 python in aig:
         if not jid2:
             return _template_pack(beat_id, ctx, "retry_not_sent")
 
-        r2 = wait(jid2, timeout=SOFT_TIMEOUT, soft=True, blocking=blocking)
+        r2 = wait_ui(jid2, soft=True, blocking=blocking)
         if r2["state"] != "done":
             return _template_pack(beat_id, ctx, "retry_" + str(r2["state"]))
         v2 = renpy.store.ai_validate(r2["text"], ctx)
@@ -231,6 +239,73 @@ init -1 python in aig:
             cancel(PENDING[kk]["jid"])
         PENDING.clear()
 
+    ## 自由行动正文（不调 AI）######################################################
+
+    def _free_pool(action_key):
+        """取一个行动的变体池。
+
+        池子在 fallback.rpy：FREE_VARIANTS = {"attend_class": [变体0, 变体1, 变体2], ...}
+        每个变体和 FALLBACK 里一个拍同形状（lines / mood）。没写池子就退回该月的拍模板。
+        """
+        pool = globals().get("FREE_VARIANTS") or {}
+        one = pool.get(action_key)
+        if one:
+            return one
+        single = FALLBACK.get("free_" + action_key)
+        if isinstance(single, (list, tuple)):
+            return single
+        return ()
+
+    def _free_start(action_key, n):
+        """本局第一次点到这个行动时，随机挑一个起步位。
+
+        为什么要有它：轮转本身是确定的，如果所有玩家都从 0 开始，33 条变体读到的
+        顺序就完全一样——「每局对话不同」在自由行动这段直接失效。
+        起步位从本局随机数里抽一次并存进存档，于是：新开一局是新起步位；
+        同一存档回滚或读档，还接着那个位置走，一字不差。
+        """
+        counts = renpy.store.ai_free_counts
+        if action_key in counts:
+            return int(counts[action_key])
+        start = renpy.random.randint(0, max(0, n - 1))
+        renpy.store.ai_free_counts = dict(counts, **{action_key: start})
+        return start
+
+    def free_scene(action_key, pool=None, beat_id=None):
+        """取这一次自由行动的台词，返回 lines（[(speaker, text)] 结构的字典列表）。
+
+        随机只是起步位：每句单独随机会有 1/3 概率连着重复同一句，轮转不会。
+        """
+        if beat_id is None:
+            beat_id = "t%d_free" % renpy.store.turn
+        variants = pool if pool is not None else _free_pool(action_key)
+        if not variants:
+            ## 还没写池子：退回 fallback 里 act/<action_key> 那一版，宁可平淡也不要空白
+            return template(beat_id, action_key).get("lines") or []
+
+        n = _free_start(action_key, len(variants))
+        v = variants[n % len(variants)]
+        renpy.store.ai_free_counts = dict(
+            renpy.store.ai_free_counts, **{action_key: n + 1}
+        )
+        ## 用 hasattr 而不是 isinstance(v, dict)：命名空间里的 dict 被 Ren'Py 换成了
+        ## RevertableDict，测试里造的普通 dict 反而不认，会把变体当成序列拆成键名。
+        if hasattr(v, "get"):
+            return v.get("lines") or []
+        return list(v)
+
+    ## 预取：下个月第一拍 ##########################################################
+
+    def prefetch_first(turn_no):
+        """预取某个回合的第一拍（按 beat 表里的登记顺序）。
+
+        T3 起的拍还没登记时返回 0 —— 调用方不用判断，登记之后自动生效。
+        """
+        for bid, b in renpy.store.AI_BEATS.items():
+            if b.get("turn") == turn_no and bid.startswith("t%d_" % turn_no):
+                return prefetch(bid)
+        return 0
+
 
 ## 剧本层入口 ####################################################################
 ## call ai_play("t2_piano")                 —— 只演台词，不给选项
@@ -260,3 +335,10 @@ label ai_menu(beat_id, choice_path="", extra=""):
 label ai_prefetch(beat_id, choice_path="", extra=""):
     $ _ai_jid = aig.prefetch(beat_id, choice_path, extra=extra)
     return _ai_jid
+
+
+## 自由行动的正文：不调 AI，从 fallback.rpy 的变体池按「本局已用次数」轮转。
+## 数值变化已经由 do_action 结算完了，这里只出文字。
+label ai_free_scene(action_key):
+    $ ai_say(aig.free_scene(action_key))
+    return

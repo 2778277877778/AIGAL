@@ -215,7 +215,7 @@ init -6 python in aig:
     ## 所以 schema 在两个来源上跑的是同一条校验路径。
     FAKE_BODY_OK = (
         '{"lines":[{"speaker":"zm","text":"他把琴谱翻到最后一页，没说话。"}],'
-        '"choices":[{"text":"问他为什么","action_key":"ask_zhoumo"},'
+        '"choices":[{"text":"问他为什么","action_key":"study"},'
         '{"text":"装作没看见","action_key":""}],'
         '"flags":[],"mood":"quiet"}'
     )

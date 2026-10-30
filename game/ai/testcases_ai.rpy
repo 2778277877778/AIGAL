@@ -52,7 +52,7 @@ testcase fake_ok:
     $ _r = aig.wait(_j, timeout=3.0, blocking=True)
     $ _aig_test(_j != 0, "start_fake 没给 id")
     $ _aig_test(_r["state"] == "done", "fake ok 没跑完：%r" % (_r,))
-    $ _v = ai_validate(_r["text"], ai_ctx("t1_night_piano"))
+    $ _v = ai_validate(_r["text"], ai_ctx("t1_free"))
     $ _aig_test(_v["ok"], "schema 拒了 fake ok：%s / %r" % (_v["reason"], _v["notes"]))
     $ _aig_test(len(_v["lines"]) == 1, "行数不对：%r" % (_v["lines"],))
     $ _aig_test(_v["lines"][0]["speaker"] == "zm", "speaker 不对")
@@ -139,10 +139,10 @@ testcase pipeline_fake:
     $ aig.reset_circuit()
     $ aig.clear_pending()
     $ _n0 = aig.status()["requests"]
-    $ _d1 = aig.run("t1_night_piano", fake="ok", blocking=True)
+    $ _d1 = aig.run("t1_free", fake="ok", blocking=True)
     $ _aig_test(_d1["source"] == "ai", "第一次应走 ai，实际 %r（notes=%r）" % (_d1["source"], _d1["notes"]))
     $ _aig_test(len(_d1["lines"]) >= 1, "没有台词：%r" % (_d1,))
-    $ _d2 = aig.run("t1_night_piano", fake="ok", blocking=True)
+    $ _d2 = aig.run("t1_free", fake="ok", blocking=True)
     $ _aig_test(_d2["source"] == "cache", "第二次应命中缓存，实际 %r" % (_d2["source"],))
     $ _aig_test(aig.status()["requests"] == _n0 + 1, "第二次不该再发请求：%r" % (aig.status()["requests"],))
 
@@ -151,9 +151,12 @@ testcase pipeline_fake:
 testcase pipeline_prefetch:
     $ aig.reset_circuit()
     $ aig.clear_pending()
-    $ _jid = aig.prefetch("t1_free", fake="ok")
+    $ _saved_turn2 = store.turn
+    $ store.turn = 2
+    $ _jid = aig.prefetch("t2_free", fake="ok")
     $ _aig_test(_jid != 0, "预取没发出去")
-    $ _d = aig.run("t1_free", fake="ok", blocking=True)
+    $ _d = aig.run("t2_free", fake="ok", blocking=True)
+    $ store.turn = _saved_turn2
     $ _aig_test(_d["source"] in ("prefetch", "cache"), "应吃到预取，实际 %r" % (_d["source"],))
     $ aig.clear_pending()
 
@@ -178,6 +181,32 @@ testcase pipeline_narrative:
     $ _aig_test(_d["source"] == "ai", "应走 ai，实际 %r（notes=%r）" % (_d["source"], _d["notes"]))
     $ _keys = sorted(c["action_key"] for c in _d["choices"])
     $ _aig_test(_keys == ["ignore", "reveal"], "分支 id 不对：%r" % (_keys,))
+
+
+## 「每局不同、同存档相同」的最小验证：新开一局的 seed 必须不同，且必须进 key
+testcase seed_varies_per_run:
+    $ store.ai_seeds = {}
+    $ _s1 = aig.seed_for("t1_free")
+    $ _s2 = aig.seed_for("t1_free")
+    $ _aig_test(_s1 == _s2, "同一局内同一拍的 seed 不能变：%r vs %r" % (_s1, _s2))
+    $ store.ai_seeds = {}
+    $ _s3 = aig.seed_for("t1_free")
+    $ _aig_test(_s1 != _s3, "两次新开局 seed 撞了，两局台词会完全一样")
+    $ _aig_test(aig.key("t1_free", _s1) != aig.key("t1_free", _s3), "seed 没进 cache key")
+
+
+## 自由行动变体池：起步位随机（每局不同），局内顺序确定，游标进 store
+testcase free_rotation:
+    $ _pool = [{"lines": [{"speaker": "inner", "text": "A"}]}, {"lines": [{"speaker": "inner", "text": "B"}]}, {"lines": [{"speaker": "inner", "text": "C"}]}]
+    $ store.ai_free_counts = {}
+    $ _start = aig._free_start("study", 3)
+    $ _aig_test(0 <= _start <= 2, "起步位越界：%r" % (_start,))
+    $ _aig_test(aig._free_start("study", 3) == _start, "起步位没存住：%r" % (_start,))
+    $ _a = aig.free_scene("study", pool=_pool)[0]["text"]
+    $ _b = aig.free_scene("study", pool=_pool)[0]["text"]
+    $ _c = aig.free_scene("study", pool=_pool)[0]["text"]
+    $ _aig_test(len({_a, _b, _c}) == 3, "三次应轮完三条不同的：%r" % ([_a, _b, _c],))
+    $ _aig_test(store.ai_free_counts.get("study") == _start + 3, "游标没累计：%r" % (store.ai_free_counts,))
 
 
 ## 提示词数据确实编译进来了：公共四段 + 周墨八拍 + 每个 speaker 一段

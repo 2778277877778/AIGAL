@@ -26,6 +26,10 @@ PROMPTS_MD = os.path.join(ROOT, "高中校园物语", "提示词_角色_v1.md")
 ## 提示词里除角色段之外的公共段
 COMMON_IDS = {"P_A", "P_B", "P_C", "P_D"}
 
+## 结构性 speaker：在 characters.rpy 里 define、但不属于「角色」，不进人物卡。
+## 目前只有 nar（正体旁白，P_D 收尾靠它）。新增同类 id 就加到这里，别去改人物卡。
+STRUCTURAL_IDS = {"nar"}
+
 _DEFINE_RE = re.compile(r"^define\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*Character\(")
 _PID_RE = re.compile(r"P_[A-Za-z0-9_]+")
 _BEAT_RE = re.compile(r"^P_zm_\d$")
@@ -101,9 +105,13 @@ def main():
     c.check("define 数量 > 0", len(defines) > 0, "一个 define 都没解析到")
 
     print("[2] 人物卡 speakers 与 characters.rpy")
-    c.check("两边的 id 集合相同", sp_ids == def_ids,
-            "只在卡里：%s ｜ 只在 rpy 里：%s"
-            % (sorted(sp_ids - def_ids) or "无", sorted(def_ids - sp_ids) or "无"))
+    char_ids = def_ids - STRUCTURAL_IDS
+    c.check("两边的 id 集合相同（结构性 id 除外）", sp_ids == char_ids,
+            "只在卡里：%s ｜ 只在 rpy 里：%s ｜ 结构性：%s"
+            % (sorted(sp_ids - char_ids) or "无", sorted(char_ids - sp_ids) or "无",
+               sorted(STRUCTURAL_IDS & def_ids) or "无"))
+    c.check("结构性 id 都已 define", STRUCTURAL_IDS <= def_ids,
+            "缺：%s" % (sorted(STRUCTURAL_IDS - def_ids) or "无"))
 
     print("[3] speaker_counts 自洽（这几条就是原来手写的那几个数）")
     c.check("total == speakers 数",
@@ -130,7 +138,7 @@ def main():
     print("[4] 提示词段落覆盖")
     no_prompt = sorted(i for i in sp_ids if ("P_" + i) not in prompt_ids)
     c.check("每个 speaker 都有 P_<id> 段", not no_prompt, "缺：%s" % (no_prompt or "无"))
-    known = set("P_" + i for i in sp_ids) | COMMON_IDS
+    known = set("P_" + i for i in sp_ids) | COMMON_IDS | set("P_" + i for i in STRUCTURAL_IDS)
     stray = sorted(p for p in prompt_ids
                    if p not in known and not _BEAT_RE.match(p))
     c.check("没有未登记的段落 id", not stray, "多出：%s" % (stray or "无"))

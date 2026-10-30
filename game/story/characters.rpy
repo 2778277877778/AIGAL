@@ -23,3 +23,10 @@ define zm_mom = Character("周母")
 
 ## 心里独白：无声，用斜体区分
 define inner  = Character(None, what_italic=True)
+
+## 旁白：无声，不斜体，正体。跟 inner 分开是刻意的——
+## inner 是主角心里的话（斜体、带括号、自我拆台），nar 是看得见的事实（正体、无括号）。
+## 两者显示效果不同，不能互相顶。nar 是结构性 id：不进人物卡、不参与「13 个角色」计数，
+## 但任何一拍都可以有旁白（speakers_for 会带它）。
+define nar    = Character(None)
+
