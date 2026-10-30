@@ -1058,6 +1058,25 @@ init -4 python in aig:
             "choices": [],
             "mood": "still",
         },
+        ## 自由段时间拍：现在剧本走 ai_free_scene/act/*，这两条只作测试与旧调用点的兜底。
+        "t1_free": {
+            "lines": [
+                {"speaker": "nar", "text": "九月的太阳还很高。走廊里没人，教室门开着。"},
+                {"speaker": "zm", "text": "作业放讲台左边。第三摞。"},
+                {"speaker": "inner", "text": "（又是第三摞。我记住了。）"},
+            ],
+            "choices": [],
+            "mood": "plain",
+        },
+        "t2_free": {
+            "lines": [
+                {"speaker": "nar", "text": "十月的风从走廊穿过去。小卖部在换零钱。"},
+                {"speaker": "zzb", "text": "打球去啊？操场一个人没有。"},
+                {"speaker": "inner", "text": "（这个月还剩几天，做不完的事都堆在后面。）"},
+            ],
+            "choices": [],
+            "mood": "plain",
+        },
     }
 
     ## 撑不住时的最后一道：一句中性占位，绝不编剧情。
