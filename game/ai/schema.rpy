@@ -13,6 +13,8 @@
 
 init -2 python:
     import aigal.schema_core as aischema
+    ## 文本差异度量（二元组 Jaccard / 形状比对），给「每局不同」那套断言用。
+    import aigal.textmetrics as aitext
 
     AI_SCHEMA_VER = aischema.SCHEMA_VER
     AI_PROMPT_VER = aischema.PROMPT_VER

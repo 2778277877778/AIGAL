@@ -23,6 +23,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)                      # gal/
 SRC = os.path.join(ROOT, "高中校园物语", "提示词_角色_v1.md")
+OUTLINE = os.path.join(ROOT, "高中校园物语", "剧情大纲_三年_v1.md")     ## §2.6 的机器可读细节段
 OUT = os.path.join(ROOT, "game", "ai", "prompts_data.rpy")
 
 _HEAD_RE = re.compile(r"^###\s+(.+?)\s*$")
@@ -95,16 +96,46 @@ def parse(text):
     return paras
 
 
-def emit(paras):
+_DETAIL_RE = re.compile(r"^([a-z][a-z0-9_]*)\s*[:：]\s*(.+)$")
+_BEAT_KEY_RE = re.compile(r"^t\d+_[a-z0-9_]+$")
+
+
+def parse_details(text):
+    """解析机器可读的细节段：`t2_piano: 雨刚停 / 谱架压着两叠谱`，一行一拍。
+
+    只认 beat id 形状的键（t<数字>_<名字>），散文里偶然出现 `时间: 九月` 不会被吞。
+    """
+    details = {}
+    for line in text.splitlines():
+        m = _DETAIL_RE.match(line.strip())
+        if not m:
+            continue
+        key, body = m.group(1), m.group(2)
+        if not _BEAT_KEY_RE.match(key):
+            continue
+        items = [x.strip() for x in body.split("/")]
+        items = [x for x in items if x]
+        if items:
+            details[key] = items
+    return details
+
+
+def emit(paras, details):
     out = io.StringIO()
     out.write("## 自动生成，别手改。\n")
-    out.write("## 源文件：高中校园物语/提示词_角色_v1.md\n")
+    out.write("## 源文件：高中校园物语/提示词_角色_v1.md 与 剧情大纲_三年_v1.md §2.6\n")
     out.write("## 重新生成：python tests/build_prompts.py\n")
     out.write("## prompt 内容一变，schema_core.PROMPT_VER 要一起升，否则旧缓存会顶掉新提示词。\n\n")
     out.write("init -4 python in aig:\n\n")
     out.write("    PARAS = {\n")
     for pid in sorted(paras):
         out.write("        %r: %r,\n" % (pid, paras[pid]))
+    out.write("    }\n\n")
+    out.write("    ## 每拍的「种子化环境细节」：同一拍按 seed 取一条塞给模型。\n")
+    out.write("    ## 改细节不用升 PROMPT_VER（key 里已经有 seed），删改拍名要注意 AI_BEATS。\n")
+    out.write("    BEAT_DETAILS = {\n")
+    for bid in sorted(details):
+        out.write("        %r: %r,\n" % (bid, tuple(details[bid])))
     out.write("    }\n")
     return out.getvalue()
 
@@ -118,13 +149,21 @@ def main():
     if not paras:
         sys.stderr.write("一个段落都没解析出来，检查标记格式\n")
         return 1
+    details = {}
+    for extra in (OUTLINE,):
+        if os.path.exists(extra):
+            with io.open(extra, encoding="utf-8") as f:
+                details.update(parse_details(f.read()))
     with io.open(OUT, "w", encoding="utf-8", newline="\n") as f:
-        f.write(emit(paras))
-    common = [p for p in paras if p.count("_") == 1]
-    print("写出 %s：%d 个段落" % (OUT, len(paras)))
+        f.write(emit(paras, details))
+    print("写出 %s：%d 个段落，%d 拍的细节（共 %d 条）"
+          % (OUT, len(paras), len(details), sum(len(v) for v in details.values())))
     print("  公共段：%s" % ", ".join(sorted(p for p in paras if p[2:3] in "ABCD")))
     print("  结局套：%s" % ", ".join(sorted(p for p in paras if p.endswith("_ending"))))
     print("  八拍变体：%s" % ", ".join(sorted(p for p in paras if re.match(r"P_zm_\d", p))))
+    thin = sorted(k for k, v in details.items() if len(v) < 2)
+    if thin:
+        print("  细节不足 2 条的拍（coverage 会判红）：%s" % ", ".join(thin))
     return 0
 
 

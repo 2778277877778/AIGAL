@@ -209,6 +209,60 @@ testcase free_rotation:
     $ _aig_test(store.ai_free_counts.get("study") == _start + 3, "游标没累计：%r" % (store.ai_free_counts,))
 
 
+## 确定性降级要落进存档：同一存档同一拍，读两次必须一样，且不该再发请求
+testcase sticky_template:
+    $ aig.reset_circuit()
+    $ aig.cfg()["api_key"] = ""
+    $ store.ai_template = {}
+    $ _d1 = aig.run("t1_committee", blocking=True)
+    $ _aig_test(_d1["source"] == "template", "无 key 应走模板：%r" % (_d1["source"],))
+    $ _n = aig.status()["requests"]
+    $ _d2 = aig.run("t1_committee", blocking=True)
+    $ _aig_test(_d2["source"] == "template", "第二次也该是模板：%r" % (_d2["source"],))
+    $ _aig_test(aig.status()["requests"] == _n, "已落定的降级不该再发请求")
+    $ _aig_test(len(store.ai_template) >= 1, "降级决定没写进存档")
+    $ _aig_test(_d1["lines"] == _d2["lines"], "两次模板文本不一致")
+    $ store.ai_template = {}
+
+
+## 跳过也是「一出即定」：同一存档同一拍不许换个条件就变文本（Chief 拍的）
+testcase skip_also_sticky:
+    $ aig.reset_circuit()
+    $ aig.cfg()["api_key"] = "sk-test-not-used"
+    $ store.ai_template = {}
+    $ renpy.config.skipping = True
+    $ _d = aig.run("t1_committee", blocking=True)
+    $ renpy.config.skipping = None
+    $ aig.cfg()["api_key"] = ""
+    $ _aig_test(_d["source"] == "template", "跳过应走模板：%r" % (_d["source"],))
+    $ _aig_test(len(store.ai_template) == 1, "跳过也必须是定论：%r" % (len(store.ai_template),))
+    $ store.ai_template = {}
+
+
+## 反悔的唯一出口：显式 reroll() 才清掉这一拍的降级记录 + seed
+testcase reroll_clears_sticky:
+    $ aig.reset_circuit()
+    $ aig.cfg()["api_key"] = ""
+    $ store.ai_template = {}
+    $ _d1 = aig.run("t1_committee", blocking=True)
+    $ _aig_test(len(store.ai_template) == 1, "降级没落档：%r" % (len(store.ai_template),))
+    $ aig.reroll("t1_committee")
+    $ _aig_test(len(store.ai_template) == 0, "reroll 没清掉降级记录")
+    $ _d2 = aig.run("t1_committee", blocking=True)
+    $ _aig_test(len(store.ai_template) == 1, "reroll 后应重新落一条")
+    $ store.ai_template = {}
+    $ aig.cfg()["api_key"] = ""
+
+
+## 种子化的环境细节：同 seed 稳定、不同 seed 不同、没配就返回空
+testcase detail_seeded:
+    $ _tab = {"t1_free": ("雨停了", "走廊有水汽", "灯闪了一下")}
+    $ _a = aig.detail_for("t1_free", 1, table=_tab)
+    $ _aig_test(_a == aig.detail_for("t1_free", 1, table=_tab), "同 seed 的细节必须稳定")
+    $ _aig_test(_a != aig.detail_for("t1_free", 2, table=_tab), "不同 seed 应取到不同细节")
+    $ _aig_test(aig.detail_for("nope", 1, table=_tab) == "", "没配细节的拍应返回空")
+
+
 ## 提示词数据确实编译进来了：公共四段 + 周墨八拍 + 每个 speaker 一段
 testcase prompt_data:
     $ _aig_test(len(aig.PARAS) >= 25, "段落数不对：%d" % len(aig.PARAS))
@@ -219,3 +273,17 @@ testcase prompt_data:
     $ _aig_test("只输出一个 JSON 对象" in _m[1]["content"], "输出契约没进 user 消息")
     $ _aig_test(_m[1]["content"].index("出场角色段") < _m[1]["content"].index("只输出一个 JSON 对象"),
                  "输出契约没排在角色段之后（近因效应就没了）")
+
+## 浮层「重跑这一拍」的接口：记下最近被钉住的那一拍，并能一次清干净
+testcase reroll_last_works:
+    $ aig.reset_circuit()
+    $ aig.cfg()["api_key"] = ""
+    $ store.ai_template = {}
+    $ _d = aig.run("t1_committee", blocking=True)
+    $ _now = aig.degraded_now()
+    $ _aig_test(_now.get("beat") == "t1_committee", "没记下被钉住的拍：%r" % (_now,))
+    $ _aig_test(aig.reroll_last() is True, "reroll_last 应返回 True")
+    $ _aig_test(len(store.ai_template) == 0, "reroll_last 没清干净")
+    $ _aig_test(aig.reroll_last() is False, "没东西可重跑时应返回 False")
+    $ store.ai_template = {}
+    $ aig.cfg()["api_key"] = ""

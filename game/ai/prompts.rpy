@@ -134,6 +134,19 @@ init -3 python in aig:
         """本拍允许的 choice id。None = 用 ACTIONS 全集。"""
         return BEAT_CHOICES.get(beat_id)
 
+    ## 每拍的「种子化环境细节」：同一拍按本局 seed 挑一条塞给模型。
+    ## 两个新开局会拿到不同的一条（细节只影响「看见什么」，不新增情节），
+    ## 同一存档读档/回滚还是那一条。文案策划 按 BEAT_DETAILS 的键往里填。
+    ## 内容从 剧情大纲_三年_v1.md 的细节段生成（tests/build_prompts.py），生成物在 prompts_data.rpy。
+    if "BEAT_DETAILS" not in globals():
+        BEAT_DETAILS = {}
+
+    def detail_for(beat_id, seed, table=None):
+        d = (table if table is not None else BEAT_DETAILS).get(beat_id)
+        if not d:
+            return ""
+        return d[int(seed) % len(d)]
+
     def speakers_for(beat_id, turn=None):
         if beat_id in BEAT_SPEAKERS:
             return BEAT_SPEAKERS[beat_id]
@@ -164,7 +177,7 @@ init -3 python in aig:
         parts.append("已发生的事标：%s" % ("、".join(flags) if flags else "（无）"))
         return "；".join(parts)
 
-    def build_messages(beat_id, turn, state, ending=False, extra=""):
+    def build_messages(beat_id, turn, state, ending=False, extra="", seed=0):
         """按 §0 的顺序拼出 chat 消息。"""
         system = "\n\n".join(
             PARAS.get(k, "") for k in ("P_A", "P_B", "P_C") if PARAS.get(k)
@@ -175,6 +188,9 @@ init -3 python in aig:
         usr = []
         usr.append("【本拍场景】%s" % scene_for(beat_id, turn))
         usr.append("【本拍数值摘要】%s" % state_line(state))
+        _detail = detail_for(beat_id, seed)
+        if _detail:
+            usr.append("【本拍的随机细节】%s" % _detail)
         if extra:
             ## 本拍的既定事实：月考过没过、玩家上一拍选了什么。这是叙述前提，不是可选项。
             usr.append("【本拍补充】%s" % extra)

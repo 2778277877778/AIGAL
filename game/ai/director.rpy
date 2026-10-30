@@ -18,16 +18,26 @@
 ## 自由行动变体池的轮转游标：action_key -> 已用次数。进存档，读档后接着上次的顺序。
 default ai_free_counts = {}
 
+## 已经落定的降级决定：缓存 key -> 当时那段模板。只写「再问一次也还是这个答案」的理由，见 _sticky()。
+default ai_template = {}
+
 
 init -1 python in aig:
 
     SOFT_TIMEOUT = 8.0
+
 
     ## 校验失败时的第二次请求只加这一句，不重写整段 prompt。
     RETRY_SUFFIX = (
         "上一次的输出没有通过校验。只输出一个 JSON 对象本身："
         "不要解释、不要 markdown 围栏、不要在前后加字。"
     )
+
+    ## 上一次 run 的拍（同步调用，所以可以直接记）
+    _LAST_RUN = {"beat": "", "choice_path": ""}
+
+    ## 最近一次「一出即定」的降级：给浮层/诊断页的「重跑这一拍」按钮用
+    LAST_DEGRADED = {}
 
     ## 在飞的预取：缓存 key -> {jid, beat, choice_path}。和 Job 表一样不进 store。
     PENDING = {}
@@ -82,13 +92,13 @@ init -1 python in aig:
         }
         return start_http(url, headers, body, tag="chat")
 
-    def _messages(beat_id, turn, ending, extra=""):
+    def _messages(beat_id, turn, ending, extra="", seed=0):
         st = _state()
         c = choices_for(beat_id)
         if c:
             ## 剧情拍的选项是分支 id，不是 ACTIONS；提示词里给的和校验用的必须是同一份
             st["actions"] = c
-        return build_messages(beat_id, turn, st, ending=ending, extra=extra)
+        return build_messages(beat_id, turn, st, ending=ending, extra=extra, seed=seed)
 
     def _pack(v, ctx, source, notes=None):
         return {
@@ -112,6 +122,63 @@ init -1 python in aig:
             "notes": [why],
             "ctx": ctx,
         }
+
+    def _sticky(k, reason, pack):
+        """一出即定：降级文本也写进存档，同一存档这一拍以后都是这一段。
+
+        Chief 定的：seed 和 key 都没变却换了文本，是硬违约。所以超时、跳过、
+        离线、连续不合格全都算「这一拍已经出过」，不再自动重买。要换只有一条路：
+        显式调 reroll()（设置/调试页给按钮），不做自动重试。
+
+        为什么不直接写进 ai_cache：那层存的是模型原文，回读时要再过一次校验，
+        而模板里的空 action_key / 未登记的 speaker 会被校验剔掉，菜单拍会丢选项。
+        """
+        renpy.store.ai_template = dict(renpy.store.ai_template, **{k: {
+            "source": "template",
+            "lines": pack["lines"],
+            "choices": pack["choices"],
+            "flags": [],
+            "mood": pack["mood"],
+            "notes": [reason],
+        }})
+        ## 记下这一拍：浮层的「重跑这一拍」按钮和诊断页都读它
+        LAST_DEGRADED.update(k=k, beat=_LAST_RUN["beat"],
+                             choice_path=_LAST_RUN["choice_path"], reason=reason)
+        ## 横幅也走这条：invalid_twice 是 wait 之后才判的，wait_ui 里看不见，
+        ## 少了这一句，校验不过的降级就不会弹横幅。
+        try:
+            degrade_banner(_LAST_RUN["beat"], _LAST_RUN["choice_path"], reason)
+        except Exception:
+            pass
+        return pack
+
+    def reroll_last():
+        """重跑最近一次被降级钉住的拍。没有就返回 False（按钮据此禁用）。"""
+        if not LAST_DEGRADED.get("beat"):
+            return False
+        reroll(LAST_DEGRADED["beat"], LAST_DEGRADED.get("choice_path", ""))
+        LAST_DEGRADED.clear()
+        return True
+
+    def degraded_now():
+        """当前这一幕有没有被钉住的拍（浮层/诊断页决定按钮显不显示）。"""
+        return dict(LAST_DEGRADED)
+
+    def reroll(beat_id, choice_path=""):
+        """玩家显式要求重跑这一拍：清掉这一拍的三处记录，下次 run 会掷新 seed 重买。
+
+        清的是：两层正文缓存、降级记录、这一拍的 seed。seed 不清就会算出同一个 key，
+        又命中同一份缓存，等于没重跑。
+        """
+        k = key(beat_id, seed_for(beat_id, choice_path), choice_path)
+        forget(k)
+        renpy.store.ai_template = dict(
+            (kk, vv) for kk, vv in renpy.store.ai_template.items() if kk != k
+        )
+        seeds = dict(renpy.store.ai_seeds)
+        seeds.pop("%s|%s" % (beat_id, choice_path), None)
+        renpy.store.ai_seeds = seeds
+        return k
 
     def _ctx(beat_id, expect_choices=None):
         kw = {
@@ -140,6 +207,8 @@ init -1 python in aig:
         剧本不要按 source 分支——降级文本和 AI 文本同构。
         """
         renpy.store.trace_beat(beat_id)
+        _LAST_RUN["beat"] = beat_id
+        _LAST_RUN["choice_path"] = choice_path
         ok, why = renpy.store.ai_beat_ok(beat_id)
         if not ok:
             return _template_pack(beat_id, _fake_ctx(beat_id), why)
@@ -152,6 +221,11 @@ init -1 python in aig:
         ctx["choice_path"] = choice_path
         seed = seed_for(beat_id, choice_path)
         k = key(beat_id, seed, choice_path)
+
+        ## 0. 存档里已经落定的降级：同一存档同一拍，读两次必须一样
+        stick = renpy.store.ai_template.get(k)
+        if stick is not None:
+            return dict(stick, ctx=ctx)
 
         ## 1. 缓存
         cached = get(k)
@@ -173,19 +247,19 @@ init -1 python in aig:
 
         ## 3. 不能买：没 key / 离线 / Ctrl 跳过中
         if fake is None and not api_ready():
-            return _template_pack(beat_id, ctx, "no_api_key")
+            return _sticky(k, "no_api_key", _template_pack(beat_id, ctx, "no_api_key"))
         if not allowed():
-            return _template_pack(beat_id, ctx, "offline_or_skipping")
+            return _sticky(k, "offline_or_skipping", _template_pack(beat_id, ctx, "offline_or_skipping"))
 
         ending = (b.get("scope") == "ending")
-        jid = _dispatch(_messages(beat_id, turn, ending, extra), fake)
+        jid = _dispatch(_messages(beat_id, turn, ending, extra, seed), fake)
         if not jid:
-            return _template_pack(beat_id, ctx, "not_sent")
+            return _sticky(k, "not_sent", _template_pack(beat_id, ctx, "not_sent"))
 
         r = wait_ui(jid, soft=True, blocking=blocking)
         if r["state"] != "done":
             ## 8s 软降级：只提示一行，不打断；迟到成功也不会再把这一拍换回来
-            return _template_pack(beat_id, ctx, "soft_" + str(r["state"]))
+            return _sticky(k, "soft_" + str(r["state"]), _template_pack(beat_id, ctx, "soft_" + str(r["state"])))
 
         v = renpy.store.ai_validate(r["text"], ctx)
         if v["ok"]:
@@ -193,20 +267,20 @@ init -1 python in aig:
             return _pack(v, ctx, "ai")
 
         ## 4. 校验失败：重试一次（只补一句约束，不重写整段 prompt）
-        msgs = _messages(beat_id, turn, ending, extra)
+        msgs = _messages(beat_id, turn, ending, extra, seed)
         msgs.append({"role": "user", "content": RETRY_SUFFIX})
         jid2 = _dispatch(msgs, fake)
         if not jid2:
-            return _template_pack(beat_id, ctx, "retry_not_sent")
+            return _sticky(k, "retry_not_sent", _template_pack(beat_id, ctx, "retry_not_sent"))
 
         r2 = wait_ui(jid2, soft=True, blocking=blocking)
         if r2["state"] != "done":
-            return _template_pack(beat_id, ctx, "retry_" + str(r2["state"]))
+            return _sticky(k, "retry_" + str(r2["state"]), _template_pack(beat_id, ctx, "retry_" + str(r2["state"])))
         v2 = renpy.store.ai_validate(r2["text"], ctx)
         if v2["ok"]:
             put(k, r2["text"])
             return _pack(v2, ctx, "ai_retry")
-        return _template_pack(beat_id, ctx, "invalid_twice")
+        return _sticky(k, "invalid_twice", _template_pack(beat_id, ctx, "invalid_twice"))
 
     def prefetch(beat_id, choice_path="", fake=None, extra=""):
         """后台买下一拍。返回 job id（0 = 没发，调用方不用管）。"""
@@ -226,7 +300,7 @@ init -1 python in aig:
         if k in PENDING:
             return 0                        # 已经在飞
 
-        jid = _dispatch(_messages(beat_id, b["turn"], b.get("scope") == "ending", extra), fake)
+        jid = _dispatch(_messages(beat_id, b["turn"], b.get("scope") == "ending", extra, seed), fake)
         if jid:
             PENDING[k] = {"jid": jid, "beat": beat_id, "choice_path": choice_path}
         return jid
