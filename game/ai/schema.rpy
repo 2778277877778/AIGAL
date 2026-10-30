@@ -56,12 +56,14 @@ init -1 python:
         "t8_subject":     dict(turn=8, flags=(), expect_choices=False),
         "t8_form":        dict(turn=8, flags=(), expect_choices=False),
 
-        ## T8 结局。正文比拍内长，走 ENDING_* 那套上限（160 字/行、600 字合计），
-        ## 别让它跟拍内那套 250 字共用——截到 250 就是整局最后一段正文没了。
-        "t8_true":        dict(turn=8, flags=(), expect_choices=False, scope="ending"),
-        "t8_end_a":       dict(turn=8, flags=(), expect_choices=False, scope="ending"),
-        "t8_end_b":       dict(turn=8, flags=(), expect_choices=False, scope="ending"),
-        "t8_end_c":       dict(turn=8, flags=(), expect_choices=False, scope="ending"),
+        ## 结局拍放在 T36（分班名单之后），正文走 ENDING_* 那套上限。
+        ## t8_end_a/b 留作「夏/温」两条 END 的载体，正文由文案按线重写；
+        ## t8_end_c 是周墨线的 END（TRUE 之外）；none 用 t36_end_other。
+        "t8_true":        dict(turn=36, flags=(), expect_choices=False, scope="ending"),
+        "t8_end_a":       dict(turn=36, flags=(), expect_choices=False, scope="ending"),
+        "t8_end_b":       dict(turn=36, flags=(), expect_choices=False, scope="ending"),
+        "t8_end_c":       dict(turn=36, flags=(), expect_choices=False, scope="ending"),
+        "t36_end_other":  dict(turn=36, flags=(), expect_choices=False, scope="ending"),
 
         ## ── T9–T35 主线拍（《剧情大纲_三年_v1.md》§1.2 登记表，21 个）──────
         ## 目前只有 id 与回合；台词/细节等 story 与 §2.7 跟上后再长。
@@ -85,7 +87,6 @@ init -1 python:
         "t32_choice":     dict(turn=32, flags=(), expect_choices=False),
         "t33_last":       dict(turn=33, flags=(), expect_choices=False),
         "t34_gaokao":     dict(turn=34, flags=(), expect_choices=False, scope="ending"),
-        "t35_score":      dict(turn=35, flags=(), expect_choices=False, scope="ending"),
 
         ## ── 随机事件拍（§3.2，20 个）──────────────────────────────────────
         ## turns 是允许出现的回合集合（事件有月窗口，不是单回合拍）。

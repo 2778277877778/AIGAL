@@ -235,6 +235,16 @@ init -1 python:
             return "B"
         return "C"
 
+    def true_ending_v3():
+        """三年版 TRUE（大纲 §4）：高考 ≥85、压力 ≤60、route == zm、
+        rel_zm ≥60、周墨 10 个里程碑全中。判定永不读 AI 输出。"""
+        return (store.exam_score is not None
+                and store.exam_score >= GAOKAO_LINE
+                and store.stress <= 60
+                and store.route == "zm"
+                and store.rel_zm >= 60
+                and all(has_flag(f) for f in MILESTONE_FLAGS["zm"]))
+
 
 ## 存档状态 ####################################################################
 ## 初始值只写在 STAT_INIT 一处，这里从它取，别再重复写数字。

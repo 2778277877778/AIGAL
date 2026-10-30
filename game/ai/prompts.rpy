@@ -62,7 +62,7 @@ init -3 python in aig:
         "t32_choice":     ("mc", "xia", "nar"),
         "t33_last":       ("mc", "x", "nar"),
         "t34_gaokao":     ("mc", "zeng", "nar"),
-        "t35_score":      ("mc", "nar"),
+        "t36_end_other":  ("nar",),
 
         ## 随机事件拍（§3.2）
         "e_welcome":      ("mc", "zm", "bro", "nar"),
@@ -132,7 +132,7 @@ init -3 python in aig:
         "t32_choice":     "夏幸悠做完决定，不等他回答。",
         "t33_last":       "温以宁对他说最后一句。",
         "t34_gaokao":     "高考，考场；这一回只掷一次。",
-        "t35_score":      "查分夜，家里很安静。",
+        "t36_end_other":  "结局·普通 END：三年过去，谁都没走进谁的那条线。",
 
         ## 随机事件拍（§3.2 的事件列）
         "e_welcome":      "迎新晚会，礼堂；台下跟着合唱。",

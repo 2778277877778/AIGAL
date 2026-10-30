@@ -826,15 +826,18 @@ init -4 python in aig:
             "choices": [],
             "mood": "tense",
         },
-        "t35_score": {
+        ## 自由段时间拍：现在剧本走 ai_free_scene/act/*，这两条只作测试与旧调用点的兜底。
+        "t36_end_other": {
             "lines": [
-                {"speaker": "nar", "text": "查分那晚，家里很安静。"},
-                {"speaker": "nar", "text": "屏幕上的数字亮着，他看了很久。"},
+                {"speaker": "nar", "text": "三年过去。"},
+                {"speaker": "nar", "text": "分班名单贴出来那天，有人在楼下站了很久。"},
+                {"speaker": "nar", "text": "后来谁都去了自己该去的地方。"},
+                {"speaker": "nar", "text": "不是每首曲子都能弹完。"},
             ],
             "choices": [],
             "mood": "still",
         },
-        ## 自由段时间拍：现在剧本走 ai_free_scene/act/*，这两条只作测试与旧调用点的兜底。
+
     }
 
     ## 撑不住时的最后一道：一句中性占位，绝不编剧情。

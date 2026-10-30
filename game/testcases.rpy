@@ -322,8 +322,7 @@ testcase event_pool:
             for _bid in ("t9_injury", "t10_subject", "t13_artfair", "t14_coach", "t15_ask",
                          "t16_mother", "t17_parent", "t18_half", "t19_club", "t20_quit",
                          "t21_transfer", "t25_hall", "t26_entry", "t27_watch", "t28_form",
-                         "t29_exam", "t30_offer", "t32_choice", "t33_last", "t34_gaokao",
-                         "t35_score"):
+                         "t29_exam", "t30_offer", "t32_choice", "t33_last", "t34_gaokao"):
                 assert _bid in AI_BEATS, "主线拍未登记：%s" % _bid
             assert len(EVENT_POOL) == 20, "事件池应为 20 个，实际 %d" % len(EVENT_POOL)
             for _eid in EVENT_POOL:

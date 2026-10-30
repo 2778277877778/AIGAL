@@ -1,4 +1,4 @@
-﻿################################################################################
+################################################################################
 ## ai/testcases_diversity.rpy —— 「每局不同、存档一致」的契约断言
 ##
 ## 对应 Chief 定的五条里的第 1、2、3 条里**能在引擎内验的部分**：
@@ -313,3 +313,49 @@ testcase diversity_report:
             _div_test(_beats > 0, _msg)
         elif _beats == 0:
             print("WARN " + _msg + "（默认链不判红；用 .\\dev.ps1 diversity 看）")
+
+
+## 11. 三条 route 各自有玩家真能读到的结局
+##     只验 lock_route() 选对了线是不够的：route 对了、ending_gate 没按 route 分支，
+##     玩家照样读不到那三个结局。这条要的是「route → 结局 id」这一跳本身。
+testcase div_route_endings:
+    python:
+        _saved = (store.rel_zm, store.rel_xia, store.rel_x,
+                  store.route, store.route_done)
+        try:
+            _picked = {}
+            for _r, _v in (("zm", (80, 10, 10)),
+                           ("xia", (10, 80, 10)),
+                           ("x", (10, 10, 80))):
+                store.rel_zm, store.rel_xia, store.rel_x = _v
+                store.route_done = False          # lock_route 只锁一次，每轮都要放开
+                _picked[_r] = lock_route()
+            _div_test(_picked["zm"] == "zm" and _picked["xia"] == "xia" and _picked["x"] == "x",
+                      "lock_route 没按好感选出三条线：%r" % (_picked,))
+
+            ## 结局得有一条 route → 结局 id 的接缝；没有就说明 ending_gate 还在按
+            ## TRUE / END A-B-C 分，三个 route 结局玩家永远读不到。
+            _tab = getattr(store, "ENDING_BY_ROUTE", None)
+            _fn = getattr(store, "ending_for", None)
+            _div_test(_tab is not None or _fn is not None,
+                      "缺少 route→结局 的接缝：既没有 ENDING_BY_ROUTE 表，也没有 ending_for()，"
+                      "这条没法独立验证；ending_gate 现在仍是 TRUE/END A-B-C")
+
+            _ids = {}
+            for _r in ("zm", "xia", "x"):
+                if _tab is not None:
+                    _ids[_r] = str(_tab.get(_r) or "")
+                else:
+                    _ids[_r] = str(_fn(_r) or "")
+            _blank = []
+            for _r in ("zm", "xia", "x"):
+                if not _ids[_r]:
+                    _blank.append(_r)
+            _div_test(not _blank, "这些 route 没有结局 id：%r（全表 %r）" % (_blank, _ids))
+
+            _distinct = set(_ids.values())
+            _div_test(len(_distinct) == 3,
+                      "三个 route 的结局没有各不相同（玩家会读到同一个结局）：%r" % (_ids,))
+        finally:
+            store.rel_zm, store.rel_xia, store.rel_x = _saved[0], _saved[1], _saved[2]
+            store.route, store.route_done = _saved[3], _saved[4]
