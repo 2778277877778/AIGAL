@@ -11,30 +11,51 @@ init -1 python:
     ## 初始值（设定总表 §四：学习 30 / 压力 10 / 体力 40 / 金钱 100）
     STAT_INIT = {"study": 30, "stress": 10, "stamina": 40, "money": 100}
 
-    ## 回合规则
+    ## 回合规则（三年版 36 格：30 完整 + 6 暑假过场）
     ALLOWANCE_PER_MONTH = 150   # 月初生活费
-    AP_PER_MONTH = 3            # 每月行动点
-    AP_LAST_MONTH = 2           # T8 只有 2 点
+    AP_PER_MONTH = 3            # 高一 / 高二常规月
+    AP_GAOKAO_MONTH = 1         # T34 高考月
+    ## 行动点特例：T10 / T22 期末月 2 点，高三（T25–T33）2 点，T34 只有 1 点
+    AP_OVERRIDE = {10: 2, 22: 2, 34: AP_GAOKAO_MONTH}
+    SUMMER_TURNS = (11, 12, 23, 24, 35, 36)   # 暑假短过场：不抽事件、不给选项
 
     ## 阈值（设定总表 §四）
     STRESS_INSOMNIA = 80        # ≥80 失眠：学习减半
     STRESS_SICK = 95            # ≥95 生病：少 1 AP
     STAMINA_LOW = 20            # <20 学习/小游戏收益减半
 
-    ## 考试线（回合事件表 §1）。key 一律英文，见变量命名规范 §3
-    EXAM_LINES = {"monthly": 35, "midterm": 50, "final": 60, "yearly": 70}
+    ## 考试线按学年分段（三年版 §6）；gaokao 是终局唯一线
+    EXAM_LINES_BY_YEAR = {
+        1: {"monthly": 35, "midterm": 50, "final": 60},
+        2: {"monthly": 50, "midterm": 65, "final": 75},
+        3: {"monthly": 60, "midterm": 75, "final": 85},
+    }
+    GAOKAO_LINE = 85
 
-    ## 结局门槛（回合事件表 §7）
+    ## 学习类行动收益按学年递减（三年版 §6）：剧情给的固定值不打折
+    STUDY_RATE_BY_YEAR = {1: 1.0, 2: 0.8, 3: 0.6}
+
+    ## 结局门槛（回合事件表 §7；三年版的第 4 节另有一套，等 36 格接通再换）
     END_STUDY = 75
     END_STRESS = 70
     TRUE_FLAGS = ("found_piano_room", "art_fair", "club", "music_hall", "subject_support", "same_subject")
 
-    ## 13 个 Flag 的唯一名单（回合事件表 §5）。set_flag 只认这些名字，
-    ## 拼错一个字母会当场抛异常，不会静默写进字典、让 TRUE 永远拿不到。
+    ## Flag 的唯一名单（《剧情大纲_三年_v1.md》§5：三线各 5–6 个 + 公共）。
+    ## set_flag 只认这些名字，拼错一个字母会当场抛异常。
     FLAG_NAMES = (
+        ## 公共 / 周墨线（旧版内容不废）
         "met_zhoumo", "offered_candy", "heard_piano", "heard_call",
         "found_piano_room", "art_fair", "sheet_music", "piano_crisis",
         "club", "music_hall", "subject_support", "same_subject", "confession",
+        ## 三年版新增：周墨线
+        "zm_father", "zm_choice", "zm_mother",
+        ## 夏幸悠线
+        "xia_met", "xia_injury", "xia_parent", "xia_stay",
+        "xia_entry", "xia_exam", "xia_choice",
+        ## 温以宁线
+        "x_met", "x_family", "x_offer", "x_choice",
+        ## 终局
+        "gaokao_pass",
     )
 
     ## 行动表（回合事件表 §3）。study/stress/stamina 是纯增量，money 是花费。
@@ -52,6 +73,7 @@ init -1 python:
         "listen_piano":     dict(label="站在琴房外听",   ap=1, stress=-8),   # 旧琴房，T3–T4
         "visit_auditorium": dict(label="去礼堂看琴",     ap=1, stress=-8),   # 礼堂，T5 后
         "visit_club":       dict(label="去音乐社",       ap=1, stress=-6),   # 艺术楼，T6 后
+        "weekend_stay":     dict(label="周末留校",       ap=0, stress=-8),   # 每月一次减压口（三年版 §6）
     }
 
     ## 地图节点（回合事件表 §4）。key 由 campus_map 和剧情共用，label 是界面上的字，
@@ -87,14 +109,44 @@ init -1 python:
             return 0.5
         return 1.0
 
+    def school_year(turn_index=None):
+        """回合号 → 学年（1/2/3）；暑假短过场返回 0。36 格总表见剧情大纲 §1。"""
+        t = store.turn if turn_index is None else turn_index
+        if 1 <= t <= 10:
+            return 1
+        if 13 <= t <= 22:
+            return 2
+        if 25 <= t <= 34:
+            return 3
+        return 0
+
+    def study_rate():
+        """学习类行动收益的学年系数（三年版 §6：1.0 / 0.8 / 0.6）。"""
+        return STUDY_RATE_BY_YEAR.get(school_year(), 1.0)
+
+    def ap_for_month(turn_index):
+        """这一回合的行动点：高一/高二 3 点，T10/T22 与高三 2 点，T34 高考月 1 点。"""
+        if 25 <= turn_index <= 34:
+            return AP_OVERRIDE.get(turn_index, 2)
+        return AP_OVERRIDE.get(turn_index, AP_PER_MONTH)
+
+    def exam_line(line_key):
+        """按当前学年取及格线；gaokao 固定 85，yearly 是旧名、按当年期末算。"""
+        if line_key == "gaokao":
+            return GAOKAO_LINE
+        year = school_year() or 1
+        if line_key == "yearly":
+            line_key = "final"
+        return EXAM_LINES_BY_YEAR[year][line_key]
+
     def add_stat(name, delta, affected_by_state=False):
-        """改数值的唯一入口。affected_by_state=True 时按失眠/低体力打折正收益。
+        """改数值的唯一入口。affected_by_state=True 时按失眠/低体力 × 学年系数打折。
 
         打折后四舍五入取整（5 减半 = 2.5 → 3），不用 Python 的 round()：
         round(2.5) 走 banker's rounding 会给 2，失眠时反而比「减半」更狠。
         """
         if affected_by_state and delta > 0:
-            delta = int(delta * gain_multiplier() + 0.5)
+            delta = int(delta * gain_multiplier() * study_rate() + 0.5)
         if name == "money":
             store.money = max(0, store.money + delta)
         else:
@@ -111,6 +163,10 @@ init -1 python:
             raise Exception("未知行动：%s" % key)
         if act["ap"] and not can_act():
             return False
+        if key == "weekend_stay":
+            if store.weekend_used:
+                return False          # 每月一次减压口，多按不给
+            store.weekend_used = True
         if act["ap"]:
             store.ap -= 1
         changed = {}
@@ -122,13 +178,14 @@ init -1 python:
         return changed
 
     def start_month(turn_index, allowance=ALLOWANCE_PER_MONTH):
-        """月初：生活费到账、行动点重置。turn_index 从 1 开始（T1..T8）。"""
+        """月初：生活费到账、行动点重置。turn_index 从 1 开始（T1..T36）。"""
         store.turn = turn_index
         add_stat("money", allowance)
-        ap = AP_LAST_MONTH if turn_index >= 8 else AP_PER_MONTH
+        ap = ap_for_month(turn_index)
         if store.stress >= STRESS_SICK:
             ap -= 1                       # 生病：少 1 AP
         store.ap = max(0, ap)
+        store.weekend_used = False        # 每月的减压口重新可用
 
     def exam_roll():
         """掷一次：学习 + 随机(−5, +5)，存进 store.exam_score 并返回。
@@ -139,21 +196,21 @@ init -1 python:
         return store.exam_score
 
     def exam_pass(line_key):
-        """拿 store.exam_score 比 EXAM_LINES 的及格线，不重新掷。
+        """拿 store.exam_score 比当前学年的及格线，不重新掷。
 
-        key：monthly 35 / midterm 50 / final 60 / yearly 70。
+        key：monthly / midterm / final / yearly（旧名，按当年期末）/ gaokao（固定 85）。
         调用约定：同一回合必须先 exam_roll() 再 exam_pass()，月末流程固定是
-        「exam_roll() → exam_pass(key)」。没掷过（exam_score 是 None）会直接抛，
-        不会静默判不及格。
+        「exam_roll() → exam_pass(key)」。没掷过（exam_score 是 None）会直接抛。
         """
         if store.exam_score is None:
             raise Exception("还没掷点：exam_pass(%r) 之前必须先调 exam_roll()" % line_key)
-        return store.exam_score >= EXAM_LINES[line_key]
+        return store.exam_score >= exam_line(line_key)
 
     def set_flag(name):
         if name not in FLAG_NAMES:
             raise Exception("未知 Flag：%s（名单见 FLAG_NAMES / 变量命名规范 §5）" % name)
         store.flags[name] = True
+        trace_flag(name)
 
     def has_flag(name):
         return bool(store.flags.get(name))
@@ -186,3 +243,4 @@ default ap = AP_PER_MONTH
 default exam_score = None   # 最近一次 exam_roll() 的掷点；None = 本回合还没掷，exam_pass 会抛
 default turn = 1
 default flags = {}
+default weekend_used = False   # 本月「周末留校」用没用过（start_month 重置）

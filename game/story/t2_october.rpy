@@ -2,9 +2,8 @@
 ## T2 十月「藏」—— 骨架 + AI 演出
 ##
 ## 数值 / Flag / 结局判定一律不动，AI 只负责场景与台词的文字部分。
-## 三个调用：
-##   call ai_play("t2_welcome")   只演台词（固定拍，不给选项）
-##   call ai_menu("t2_piano")     演完给选项，选中的分支 id 从 _return 取
+## 拍内选项一律由脚本的 menu 给（t2_piano / t2_call），AI 不产出选项、不产出 Flag。
+## 调用只有一种：call ai_play("<拍 id>", <分支>, <既定事实>) —— 只演台词。
 ##
 ## 预取按《运行时预算_v1.md》§2.1 的三条触发点放：
 ##   t2_piano 的选项点下之后 → 预取 t2_gala（这时才确定下一拍的 key 成不成立）
@@ -31,9 +30,14 @@ label t2_october:
     call ai_play("t2_welcome")
 
     ## 固定 · 旧琴房（他撞见她弹琴）
+    ## 选项由脚本给，AI 只写这一拍的台词——走向不能交给模型。
     scene bg art_backstage
-    call ai_menu("t2_piano")
-    $ t2_piano_choice = _return or "reveal"
+    call ai_play("t2_piano")
+    menu:
+        "「我不会说。」":
+            $ t2_piano_choice = "ignore"
+        "「你弹得很好。」":
+            $ t2_piano_choice = "reveal"
 
     # 选项点下的这一瞬间：下一拍的 choice_path 定了，key 才成立 —— 预取放这里
     $ aig.prefetch("t2_gala")
@@ -55,11 +59,17 @@ label t2_october:
 
     ## 固定 · 楼梯间电话（父亲打电话问数学为什么没满分）
     scene bg stairwell_night
-    call ai_menu("t2_call")
-    $ t2_call = _return or "stay"
+    call ai_play("t2_call")
+    menu:
+        "过去问一句":
+            $ t2_call = "stay"
+        "走开，当没看见":
+            $ t2_call = "leave"
+        "放一瓶水在楼梯口":
+            $ t2_call = "water_only"
 
-    # 自由时段跟着就来，choice_path 恒空 —— 现在预取，窗口最长
-    $ aig.prefetch("t2_free")
+    # 自由时段不调 AI 了（正文走 fallback 变体池），原来那条 prefetch("t2_free")
+    # 现在是纯白烧一次调用加一个线程，已删。下个月第一拍的预取挪到 free_actions 末尾。
 
     # 他听见了这通电话，三种处理都算；具体怎么处理记在 t2_call
     $ set_flag("heard_call")
@@ -70,5 +80,6 @@ label t2_october:
     ## 月末结算
     scene bg dorm_402
     "〔T2 月末结算 · 学习 [study]，压力 [stress]，体力 [stamina]，钱 [money]〕"
-    "〔T2 结束 · T3「揭」待写〕"
-    return
+    "〔T2 结束 · 十一月〕"
+
+    jump t3_november
