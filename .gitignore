@@ -32,3 +32,7 @@
 /game/screenshot*.rpy
 /tools/
 /dist/
+
+# Python side-effect files.
+/game/**/__pycache__/
+**/__pycache__/
