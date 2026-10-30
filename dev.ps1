@@ -63,7 +63,33 @@ switch ($Command) {
     default {
         $argList = @((Join-Path $sdk 'renpy.py'), $repo, $Command)
         if ($Command -eq 'test' -and $Name) { $argList += $Name }
-        & $py @argList
+
+        ## Ren'Py 的退出码不可信：lint 在 init 里抛异常也照样返回 0。
+        ## 所以这里必须看输出，只看 $LASTEXITCODE 等于没测。
+        $output = & $py @argList 2>&1
+        $output | ForEach-Object { Write-Host $_ }
+        $code = $LASTEXITCODE
+
+        $pattern = $null
+        if ($Command -in @('lint', 'compile')) {
+            $pattern = 'Full traceback|^\s*Exception|Traceback \(most recent call last\)'
+        }
+        elseif ($Command -eq 'test') {
+            ## FAILED = 用例挂了；SKIPPED = 套件压根没跑起来（init 抛异常时就是这样）
+            $pattern = 'Status: FAILED|Status: SKIPPED'
+        }
+
+        if ($pattern) {
+            $bad = $output | Select-String -Pattern $pattern
+            if ($bad) {
+                Write-Host ""
+                Write-Host "!! $Command 失败：Ren'Py 的退出码是 $code，但输出里有异常/失败标记：" -ForegroundColor Red
+                $bad | Select-Object -First 5 | ForEach-Object { Write-Host ("   " + $_) -ForegroundColor Red }
+                exit 1
+            }
+        }
+
+        exit $code
     }
 }
 
