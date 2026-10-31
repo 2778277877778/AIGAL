@@ -128,42 +128,70 @@ testcase beat_coverage:
             store.turn = _saved_turn
 
 
-## 结局判定：只读 study / stress / 六个 Flag；END 的三个变体按顺序取第一条命中的。
+## 结局判定：没锁过线的旧存档走无路线结局；锁过线按 route 分流；TRUE 五条缺一不可。
+## （旧结构的 true_ending() / end_variant() 已是历史函数，生产路径不再调用，
+##   这里只验「旧存档不会被按到别人的线上」。）
 testcase ending_logic:
     pause .2
 
     python:
-        _saved_study = store.study
-        _saved_stress = store.stress
-        _saved_flags = store.flags
+        _saved = (store.study, store.stress, store.flags, store.exam_score,
+                  store.route, store.route_done, store.rel_zm)
         try:
+            ## 1) 旧 8 回合存档：没有 route_done，哪怕旧 Flag 组合够 TRUE，也只走无路线结局。
+            ##    这条挡住的是「周墨线旧档被分到温以宁结局」那类错位。
+            store.route_done = False
+            store.route = "none"
             store.study = 80
             store.stress = 60
             store.flags = {f: True for f in TRUE_FLAGS}
-            assert true_ending(), "六个 TRUE Flag 齐全且数值达标，应为 TRUE"
+            store.exam_score = 90
+            store.rel_zm = 100
+            assert ending_id() == "none_end", "旧存档应走无路线结局，实际 %r" % (ending_id(),)
 
-            store.study = 74
-            assert not true_ending(), "学习 74 不该出 TRUE"
-            store.study = 80
-            store.stress = 71
-            assert not true_ending(), "压力 71 不该出 TRUE"
+            ## 2) 锁过线之后：四条 route 各走各的正文
+            store.route_done = True
+            store.flags = {}
+            store.exam_score = None
+            for _r, _want in (("zm", "zm_end"), ("xia", "xia_end"),
+                              ("x", "x_end"), ("none", "none_end")):
+                store.route = _r
+                assert ending_id() == _want, "route=%s 应走 %s，实际 %r" % (_r, _want, ending_id())
+
+            ## 3) 未声明的 route 是安全网：当无路线处理，不抛
+            store.route = "nobody"
+            assert ending_id() == "none_end", "未知 route 应落到 none_end"
+
+            ## 4) TRUE 五个条件逐个打掉，每个都该退成 zm_end
+            store.route = "zm"
+            store.flags = {f: True for f in MILESTONE_FLAGS["zm"]}
+            store.exam_score = 85
+            store.stress = 60
+            store.rel_zm = 60
+            assert ending_id() == "true", "五条全中应为 TRUE，实际 %r" % (ending_id(),)
+
+            store.exam_score = 84
+            assert ending_id() == "zm_end", "高考 84 不该出 TRUE"
+            store.exam_score = 85
+
+            store.stress = 61
+            assert ending_id() == "zm_end", "压力 61 不该出 TRUE"
             store.stress = 60
 
-            store.flags = dict(store.flags)
-            del store.flags["same_subject"]
-            assert not true_ending(), "缺 same_subject 不该出 TRUE"
-            assert end_variant() == "B", "缺 same_subject 应走 END B"
-            del store.flags["subject_support"]
-            assert end_variant() == "A", "缺 subject_support 应走 END A"
+            store.rel_zm = 59
+            assert ending_id() == "zm_end", "rel_zm 59 不该出 TRUE"
+            store.rel_zm = 60
 
-            store.flags["subject_support"] = True
-            store.flags["same_subject"] = True
-            store.study = 60
-            assert end_variant() == "C", "两个 Flag 都有、栽在数值应走 END C"
+            store.flags = dict(store.flags)
+            del store.flags[MILESTONE_FLAGS["zm"][-1]]
+            assert ending_id() == "zm_end", "缺一个里程碑 Flag 不该出 TRUE"
+
+            store.flags = {f: True for f in MILESTONE_FLAGS["zm"]}
+            store.route = "xia"
+            assert ending_id() == "xia_end", "route=xia 时条件再好也不该出周墨的 TRUE"
         finally:
-            store.study = _saved_study
-            store.stress = _saved_stress
-            store.flags = _saved_flags
+            (store.study, store.stress, store.flags, store.exam_score,
+             store.route, store.route_done, store.rel_zm) = _saved
 
 
 ## 三线变量（《剧情大纲_三年_v1.md》§5 §6）：好感只加不减、stage 由里程碑数算、
@@ -620,3 +648,78 @@ testcase smoke_deep:
             assert _d["lines"], "t2_piano 经假 provider 没出正文：%r" % (_d["notes"],)
         finally:
             store.turn = _saved_turn
+
+
+## 真模型：**有 key 才跑**，没 key 打一行 SKIP 然后通过。
+##
+## 这条不重复验逻辑（假 provider 那批已经覆盖）——它回答的是只有真请求能答的四件事：
+## JSON 形状、5 行上限、单行 100 字、speaker 白名单。顺带把「落缓存、同拍同 seed
+## 第二次不再发请求」和「一次请求要多久」变成可读的数字，12 秒够不够一眼就看出来。
+##
+## key 来源见 ai/settings.rpy：本次会话 > 环境变量 AIGAL_API_KEY > 落盘配置。
+testcase real_key:
+    pause .2
+
+    python:
+        if not aig.api_ready():
+            print("SKIP: 没有 API key（设置页或环境变量 AIGAL_API_KEY），真模型链路未验证")
+        else:
+            import time as _real_time
+
+            _real_beat = "t2_piano"
+            _real_saved = (store.turn, store.ai_cache, store.ai_seeds, store.ai_template)
+            try:
+                store.turn = 2
+                store.ai_cache = {}
+                store.ai_seeds = {}
+                store.ai_template = {}
+                aig.clear_pending()
+                aig.reset_circuit()
+
+                _real_k = aig.key(_real_beat, aig.seed_for(_real_beat, ""), "")
+                _real_n0 = aig.latency_stats()["requests"]
+                _real_t0 = _real_time.time()
+                _real_d = aig.run(_real_beat, "", blocking=True)
+                _real_el = _real_time.time() - _real_t0
+
+                print("REAL run: source=%s lines=%d 首请求 %.2fs"
+                      % (_real_d["source"], len(_real_d["lines"]), _real_el))
+                assert _real_d["source"] in ("ai", "ai_retry"), (
+                    "真请求没拿到 AI 正文，落在 %r；notes=%r。"
+                    "常见原因：端点/模型名不对、网络不通、超时、模型输出没过校验"
+                    % (_real_d["source"], _real_d["notes"]))
+                assert _real_d["lines"], "AI 返回了空正文"
+
+                ## 契约的四条，独立于 schema 再核一遍：schema 判过不代表我们读得出来
+                assert len(_real_d["lines"]) <= 5, "行数 %d 超过 5" % len(_real_d["lines"])
+                for _real_ln in _real_d["lines"]:
+                    _real_txt = _real_ln["text"]
+                    assert len(_real_txt) <= 100, \
+                        "单行 %d 字超过 100：%r" % (len(_real_txt), _real_txt[:20])
+                    assert getattr(store, _real_ln["speaker"], None) is not None, \
+                        "speaker 没 define：%r" % (_real_ln["speaker"],)
+                    assert not (set(_real_txt) & set("{}[]<>")), \
+                        "正文带标记没洗净：%r" % (_real_txt[:40],)
+
+                ## 真请求的结果必须落进本局缓存
+                assert _real_k in store.ai_cache, "真请求的正文没落进 store.ai_cache"
+
+                ## 第二次同拍同 seed：命中缓存，且不再发请求
+                _real_n1 = aig.latency_stats()["requests"]
+                _real_t1 = _real_time.time()
+                _real_d2 = aig.run(_real_beat, "", blocking=True)
+                _real_el2 = _real_time.time() - _real_t1
+                _real_n2 = aig.latency_stats()["requests"]
+
+                assert _real_d2["source"] == "cache", \
+                    "第二次没命中缓存：%r（notes=%r）" % (_real_d2["source"], _real_d2["notes"])
+                assert _real_n2 == _real_n1, "命中缓存却又发了请求：%d → %d" % (_real_n1, _real_n2)
+                assert _real_d2["lines"] == _real_d["lines"], "缓存回来的正文和第一次不一致"
+
+                _real_lat = aig.latency_stats()
+                print("REAL cache: 第二次 %.3fs，requests %d→%d，P50=%.2fs P95=%.2fs 超时率=%.0f%%"
+                      % (_real_el2, _real_n1, _real_n2, _real_lat["p50"], _real_lat["p95"],
+                         _real_lat["timeout_rate"] * 100))
+            finally:
+                (store.turn, store.ai_cache, store.ai_seeds, store.ai_template) = _real_saved
+                aig.reset_circuit()

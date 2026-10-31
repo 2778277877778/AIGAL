@@ -219,15 +219,19 @@ init -1 python:
     def has_flag(name):
         return bool(store.flags.get(name))
 
+    ## ── 历史函数（8 回合结构，生产路径已不调用）──────────────────────────────
+    ## endings.rpy 的 ending_id() 在旧存档（route_done 为假）时直接走 none_end，
+    ## 不再问这两个函数。保留它们只给回归用例读旧口径；新代码别再调 ——
+    ## END 正文已经按线拆成 t8_end_a/b/c，A/B/C 这套旧 Flag 组合不再对应任何正文。
+
     def true_ending():
-        """TRUE「最后一个音」：学习 ≥75、压力 ≤70、六个 Flag 全触发（不看好感）。"""
+        """【历史】TRUE「最后一个音」（8 回合口径）：学习 ≥75、压力 ≤70、六个 Flag 全触发。"""
         return store.study >= END_STUDY and store.stress <= END_STRESS and all(has_flag(f) for f in TRUE_FLAGS)
 
     def end_variant():
-        """END「琴盖没开」的正文变体（回合事件表 §7.1）：A 表被改回 / B 没跟着填 / C 曲子弹断了。
+        """【历史】END 正文的旧变体（回合事件表 §7.1）：A 表被改回 / B 没跟着填 / C 曲子弹断了。
 
-        只该在 true_ending() 为假（走 END）时调用；TRUE 分支调它会拿到一个不属于结局的变体。
-        本函数只决定取哪一版正文，正文以大纲 §5 为准。
+        只该在 true_ending() 为假时调用；输出 A/B/C，**不再对应 t8_end_a/b/c 的正文**。
         """
         if not has_flag("subject_support"):
             return "A"

@@ -3,13 +3,14 @@
 ##
 ## 5 个结局（《剧情大纲_三年_v1.md》§4）：
 ##   route == zm 且 true_ending_v3()          → TRUE「最后一个音」
-##   route == zm 但里程碑缺 ≥2                 → 周墨 END（复用 t8_end_c）
-##   route == xia                             → 夏幸悠 END（t8_end_b，正文待文案按线重写）
-##   route == x                               → 温以宁 END（t8_end_a，同上）
+##   route == zm 但 true_ending_v3() 不成立    → 周墨 END（t8_end_c）
+##   route == xia                             → 夏幸悠 END（t8_end_b）
+##   route == x                               → 温以宁 END（t8_end_a）
 ##   route == none                            → 普通 END「三年过去了」（t36_end_other）
 ##
-## route 在 T22 由 lock_route() 锁一次；没锁过（旧 8 回合读档）退回旧判定，不崩。
-## 结局正文走 AI 的 ending 预算；没 key / 超时取 fallback 的同 id 模板。
+## route 在 T22 由 lock_route() 锁一次。没锁过的是旧 8 回合存档：直接走 none_end，
+## 不再按旧 Flag 组合分 A/B/C —— t8_end_a/b/c 现在是三条线各自的正文，按旧组合分
+## 会把周墨线的存档送到温以宁的结局里。t36_end_other 是路线中立的，语义才对得上。
 ################################################################################
 
 init -1 python:
@@ -28,9 +29,15 @@ init -1 python:
 
 
     def ending_id():
-        """当前状态该走哪个结局 id；纯读 store，不写任何东西。"""
+        """当前状态该走哪个结局 id；纯读 store，不写任何东西。
+
+        `route_done` 为假 = 旧 8 回合存档（或在 T22 之前被读出来的状态）：直接走
+        none_end。这里**不再问 true_ending() / end_variant()** —— 那两个是旧结构的
+        A/B/C 正文选择，而 t8_end_a/b/c 现在分别是温以宁 / 夏幸悠 / 周墨的正文，
+        按旧 Flag 组合分会把玩家按到别人那条线的结尾上。
+        """
         if not store.route_done:
-            return "true" if true_ending() else "end_" + end_variant().lower()
+            return "none_end"
         if store.route == "zm" and true_ending_v3():
             return "true"
         return ENDING_BY_ROUTE.get(store.route, "none_end")
