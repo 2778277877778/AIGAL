@@ -169,7 +169,7 @@ def main():
                         dirty.append("%s.%s 含「%s」" % (sid, field, word))
     c.check("示例字段干净", not dirty, "；".join(dirty[:6]))
 
-    print("[8] 编码：dev.ps1 必须有 BOM")
+    print("[8] 编码：dev.ps1 必须有 BOM，.rpy 不许有")
     ## 这个坑今天踩了三次：dev.ps1 丢 BOM → PS 5.1 按 GBK 读 → 整篇语法错、
     ## `dev.ps1 test` 直接跑不起来，而发现它靠的是有人碰巧去跑。
     ## 放进每轮都过的检查器里才算闭环。
@@ -180,9 +180,22 @@ def main():
     c.check("dev.ps1 文件头是 UTF-8 BOM", head == bom,
             "现在 %r —— PS 5.1 会按 GBK 读，整篇语法错" % (head,))
 
-    ## 只钉 dev.ps1。不要顺手钉「.rpy 不许有 BOM」——仓库里 options/script/stats
-    ## 三个 .rpy 本来就有 BOM，而它们一直正常工作（lint、68 条用例都过）。
-    ## 把一条没有证据的规矩写进检查器，只会制造无关的红。
+    ## .rpy 反过来「不许有 BOM」。这条一度被我删掉过：当时仓里 options/script/stats
+    ## 三个文件带 BOM，断言红着，而红的原因是既有的不一致、不是新代码。
+    ## 全仓统一去 BOM 并验证 68 条用例照常过之后，这条才有依据——现在它只在
+    ## 有人重新引入 BOM 时变红。
+    bad_rpy = []
+    for base, _, files in os.walk(os.path.join(ROOT, "game")):
+        for fn in files:
+            if not fn.endswith(".rpy"):
+                continue
+            p = os.path.join(base, fn)
+            with io.open(p, "rb") as f:
+                if f.read(3) == bom:
+                    bad_rpy.append(os.path.relpath(p, ROOT).replace("\\", "/"))
+    c.check(".rpy 没有 BOM", not bad_rpy,
+            "带 BOM 的：%s（用「UTF-8 无 BOM」重存即可，别以为是乱码）" % (sorted(bad_rpy)[:6],))
+
     print("")
     if c.fails:
         print("FAILED: %d 项没过 —— %s" % (len(c.fails), ", ".join(c.fails)))
