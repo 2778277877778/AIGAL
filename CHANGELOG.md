@@ -44,7 +44,7 @@
 
 ### 测试
 
-- 67 个用例，`.\dev.ps1 test` 一次跑完（check_cards → lint → test）。
+- 67 个用例，`.\dev.ps1 test` 一次跑完（check_cards → lint → test）。这个数是发布当时的快照，此后会继续增长，以 `.\dev.ps1 test` 的输出为准。
 - 覆盖：契约与清洗、缓存两层、预取、熔断、跳过、存档在飞、差异（同 seed 稳定 / 覆盖 / 白名单）、分页 7 条边界、五个结局可达、三线可达、36 个月连通、死登记为零、每拍 speaker 表齐全、里程碑接线。
 - `.\dev.ps1 shots` 单独跑界面截图回归，不进默认链（基准图跟 DPI/字体绑定）；`.\dev.ps1 diversity` 打印差异率，需要真 key 时才看。
 

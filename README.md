@@ -49,7 +49,7 @@ AI 层，`game/ai/` 下这些都在跑：
 
 校验的真身在 `game/python-packages/aigal/schema_core.py`，纯 Python，可以单独跑。
 
-测试：现在 67 条用例全过，`check_cards` 和 lint 都在链里。其中 `story_graph` 静态核对所有 `jump` / `call` 的目标都存在、从 `start` 能走到 `ending_gate`，`smoke_deep` 从主菜单走到 T2，`beat_coverage` 逐拍跑假请求，`milestone_wiring` 核里程碑挂点，`every_beat_has_speakers` 挡住漏登记 speaker 的静默降级。
+测试：整条链现在全绿，具体条数看 `.\dev.ps1 test` 的输出，这里不抄。其中 `story_graph` 静态核对所有 `jump` / `call` 的目标都存在、从 `start` 能走到 `ending_gate`，`smoke_deep` 从主菜单走到 T2，`beat_coverage` 逐拍跑假请求，`milestone_wiring` 核里程碑挂点，`every_beat_has_speakers` 挡住漏登记 speaker 的静默降级，`real_key` 有真 key 才跑、没 key 打一行 SKIP。
 
 还没验的只有一件：真模型。前面所有用例证明的都是「假 provider 下成立」。真模型守不守 JSON、字数和 speaker 白名单，返回能不能在 12 秒内到，中文读着像不像人写的，只有真请求能回答。
 
@@ -184,6 +184,8 @@ AI 三份：
 - API key 不进日志：打码，请求体只留长度和前 200 字。
 - `mood` 是场景层气氛，一个拍一个，不进画面、不做角色表情、不参与判定。以后做立绘时另开角色表情字段，别复用它——一拍里有 1–2 人在场，拍级字段驱动不了两张脸。
 - 主角名在代码里还是 `XXX` 占位。改造后由玩家开局输入，`Character` 和 `{name}` 用同一个变量，不再全仓替换。
+- 集合引用声明，不抄一份：结局用 `ENDING_IDS` / `ENDING_BY_ROUTE`，拍用 `AI_BEATS`，Flag 用 `FLAG_NAMES`。抄一份的那天起，两边就开始各自漂——`prompts_data`、`BEAT_DETAILS`、`ENDING_IDS` 三处都栽在这上面。
+- 数量不手写：用例条数、拍数、细节条数都取 `.\dev.ps1 test` / `diversity` 的现算输出。写死的数字一定会漂——用例数、拍数、细节条数这三样，这一版里每一轮都在变。
 
 ## 还没定
 
