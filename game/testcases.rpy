@@ -504,10 +504,10 @@ testcase milestone_wiring:
             for _f in MILESTONE_FLAGS["zm"]:
                 assert has_flag(_f), "里程碑没置 Flag：%s" % _f
 
-            ## 夏 M1/M2、温 M1/M2：T2/T6/T4/T8 的脚本过场（没有独立 beat）
-            mark_milestone("xia", 1)
+            ## 夏 M1 / 温 M1 走新拍；M2 并进 t6_club / t8_form 的 extra，脚本直挂
+            mark_milestone_for_beat("t2_track")
+            mark_milestone_for_beat("t4_borrow")
             mark_milestone("xia", 2)
-            mark_milestone("x", 1)
             mark_milestone("x", 2)
             assert ms_count("xia") == 2 and ms_count("x") == 2, "夏/温前两个里程碑没记上"
             assert has_flag("xia_met") and has_flag("x_met"), "夏/温 M1 应置 Flag"
@@ -525,9 +525,9 @@ testcase milestone_wiring:
                 ("story/t7_may.rpy", 'mark_milestone_for_beat("t7_hall")'),
                 ("story/t8_june.rpy", 'mark_milestone_for_beat("t8_subject")'),
                 ("story/t8_june.rpy", 'mark_milestone_for_beat("t8_form")'),
-                ("story/t2_october.rpy", 'mark_milestone("xia", 1)'),
+                ("story/t2_october.rpy", 'mark_milestone_for_beat("t2_track")'),
                 ("story/t6_april.rpy", 'mark_milestone("xia", 2)'),
-                ("story/t4_december.rpy", 'mark_milestone("x", 1)'),
+                ("story/t4_december.rpy", 'mark_milestone_for_beat("t4_borrow")'),
                 ("story/t8_june.rpy", 'mark_milestone("x", 2)'),
             ):
                 _txt = renpy.open_file(_f).read().decode("utf-8")

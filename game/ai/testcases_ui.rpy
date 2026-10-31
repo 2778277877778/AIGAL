@@ -162,3 +162,37 @@ testcase debug_table:
     $ _pfx = dict(_rows)["缓存 key 前缀"]
     $ _aig_test("|" in _pfx, "缓存前缀不像 cache.key 的前缀：%r" % (_pfx,))
     $ _aig_test(aig.last_line() != "", "last_line 给了空串")
+
+## 分页：结局一条 200 字，对白框只放得下约 124 字，不切就画出框（测试也不报）
+testcase page_pages:
+    $ _a = "他把琴谱翻到最后一页，没说话。窗外的雨刚停，台阶上还有积水。她站在门口，手停在门把上，没进来，也没走。走廊的灯闪了一下，又亮起来。他说走吧，她说再等一会儿。"
+    $ _p = page_text(_a, 60)
+    $ _aig_test(len(_p) >= 2, "长句没被切开：%r" % (_p,))
+    $ _aig_test(all(len(x) <= 60 for x in _p), "有页超过上限：%r" % (_p,))
+    $ _aig_test("".join(_p) == _a, "切完拼不回原文：%r" % (_p,))
+    $ _aig_test(all(x and x[0] not in "，、；：,;:" for x in _p), "有页以标点开头：%r" % (_p,))
+
+testcase page_hard_cut:
+    ## 一整段没有标点：允许硬切，但必须一页不超、一字不丢
+    $ _b = "雨" * 250
+    $ _p = page_text(_b, 100)
+    $ _aig_test(len(_p) == 3, "250 字 / 每页 100 应切 3 页：%d" % len(_p))
+    $ _aig_test(all(len(x) <= 100 for x in _p), "硬切后有页超上限")
+    $ _aig_test("".join(_p) == _b, "硬切丢字了")
+
+testcase page_short_untouched:
+    $ _c = "短句。"
+    $ _aig_test(page_text(_c) == [_c], "短句不该被改写：%r" % (page_text(_c),))
+    $ _aig_test(page_text("") == [], "空串该返回空列表")
+
+## 规则 3：碎片页（<10 字）并进上一页，别让玩家读到一页只有两个字
+testcase page_fragment_merged:
+    $ _e = "甲" * 95 + "。" + "乙" * 3
+    $ _p = page_text(_e, 100)
+    $ _aig_test(len(_p) == 1, "3 字的尾巴没并进上一页：%r" % (_p,))
+    $ _aig_test("".join(_p) == _e, "合并后拼不回原文")
+    ## 反面：尾巴够长（≥10 字）就不该并
+    $ _f = "甲" * 95 + "。" + "乙" * 12
+    $ _q = page_text(_f, 100)
+    $ _aig_test(len(_q) == 2, "12 字的尾巴被误并了：%r" % (_q,))
+    $ _aig_test(all(len(x) >= 10 for x in _q[1:]), "后半页太短：%r" % (_q,))

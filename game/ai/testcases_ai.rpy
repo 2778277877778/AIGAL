@@ -1,4 +1,4 @@
-﻿################################################################################
+################################################################################
 ## ai/testcases_ai.rpy —— provider / cache 两层的自测（M1）
 ##
 ## 用法：.\dev.ps1 test ai_layer
@@ -39,6 +39,28 @@ init -1 python:
             return "renpy.save 失败：" + msg
         return ""
 
+
+init -1 python:
+    def _aig_case_reset(beat_id=None, turn=1):
+        """用例之间不许互相喂饭：清这一拍的三层状态，并把回合复位成主菜单的真实值 1。
+
+        之前几条 pipeline_* 共用 t3_parent 又不清 seed，靠「假正文校验不过、于是被
+        forget」这个副作用清场 —— 拍表一动副作用就消失，后面几条立刻塌。
+        """
+        if beat_id:
+            k = aig.key(beat_id, aig.seed_for(beat_id, ""), "")
+            aig.forget(k)
+            renpy.store.ai_template = dict(
+                (kk, vv) for kk, vv in renpy.store.ai_template.items() if kk != k
+            )
+            seeds = dict(renpy.store.ai_seeds)
+            seeds.pop(beat_id + "|", None)
+            renpy.store.ai_seeds = seeds
+        else:
+            renpy.store.ai_cache = {}
+            renpy.store.ai_template = {}
+            renpy.store.ai_seeds = {}
+        renpy.store.turn = turn
 
 testsuite ai_layer:
     teardown:
@@ -143,8 +165,8 @@ testcase skip_blocks_request:
 testcase pipeline_fake:
     $ aig.reset_circuit()
     $ aig.clear_pending()
-    $ _saveturn_pf = store.turn
-    $ store.turn = 3
+    $ _aig_case_reset("t3_parent", 3)
+
     $ _n0 = aig.status()["requests"]
     $ _d1 = aig.run("t3_parent", fake="ok", blocking=True)
     $ _aig_test(_d1["source"] == "ai", "第一次应走 ai，实际 %r（notes=%r）" % (_d1["source"], _d1["notes"]))
@@ -152,30 +174,31 @@ testcase pipeline_fake:
     $ _d2 = aig.run("t3_parent", fake="ok", blocking=True)
     $ _aig_test(_d2["source"] == "cache", "第二次应命中缓存，实际 %r" % (_d2["source"],))
     $ _aig_test(aig.status()["requests"] == _n0 + 1, "第二次不该再发请求：%r" % (aig.status()["requests"],))
-    $ store.turn = _saveturn_pf
+    $ _aig_case_reset(None, 1)
 
 
 ## 预取：后台买好，进拍时直接取，不重复买
 testcase pipeline_prefetch:
+    $ _aig_case_reset("t3_parent", 3)
     $ aig.reset_circuit()
     $ aig.clear_pending()
-    $ _saved_turn2 = store.turn
-    $ store.turn = 2
-    $ _jid = aig.prefetch("t2_free", fake="ok")
+    $ _jid = aig.prefetch("t3_parent", fake="ok")
     $ _aig_test(_jid != 0, "预取没发出去")
-    $ _d = aig.run("t2_free", fake="ok", blocking=True)
-    $ store.turn = _saved_turn2
+    $ _d = aig.run("t3_parent", fake="ok", blocking=True)
     $ _aig_test(_d["source"] in ("prefetch", "cache"), "应吃到预取，实际 %r" % (_d["source"],))
     $ aig.clear_pending()
+    $ _aig_case_reset(None, 1)
 
 
 ## 没 key 走模板：不崩、不卡、有台词
 testcase pipeline_template:
+    $ _aig_case_reset("t3_parent", 3)
     $ aig.reset_circuit()
     $ aig.cfg()["api_key"] = ""
-    $ _d = aig.run("t1_free", blocking=True)
+    $ _d = aig.run("t3_parent", blocking=True)
     $ _aig_test(_d["source"] == "template", "无 key 应走模板，实际 %r" % (_d["source"],))
     $ _aig_test(len(_d["lines"]) >= 1, "模板没有台词")
+    $ _aig_case_reset(None, 1)
 
 
 ## 剧情拍的选项走「拍内分支 id 白名单」，不是 ACTIONS 全集
@@ -219,13 +242,14 @@ testcase free_rotation:
 
 ## 确定性降级要落进存档：同一存档同一拍，读两次必须一样，且不该再发请求
 testcase sticky_template:
+    $ store.turn = 3
     $ aig.reset_circuit()
     $ aig.cfg()["api_key"] = ""
     $ store.ai_template = {}
-    $ _d1 = aig.run("t1_free", blocking=True)
+    $ _d1 = aig.run("t3_parent", blocking=True)
     $ _aig_test(_d1["source"] == "template", "无 key 应走模板：%r" % (_d1["source"],))
     $ _n = aig.status()["requests"]
-    $ _d2 = aig.run("t1_free", blocking=True)
+    $ _d2 = aig.run("t3_parent", blocking=True)
     $ _aig_test(_d2["source"] == "template", "第二次也该是模板：%r" % (_d2["source"],))
     $ _aig_test(aig.status()["requests"] == _n, "已落定的降级不该再发请求")
     $ _aig_test(len(store.ai_template) >= 1, "降级决定没写进存档")
@@ -235,11 +259,12 @@ testcase sticky_template:
 
 ## 跳过也是「一出即定」：同一存档同一拍不许换个条件就变文本（Chief 拍的）
 testcase skip_also_sticky:
+    $ store.turn = 3
     $ aig.reset_circuit()
     $ aig.cfg()["api_key"] = "sk-test-not-used"
     $ store.ai_template = {}
     $ renpy.config.skipping = True
-    $ _d = aig.run("t1_free", blocking=True)
+    $ _d = aig.run("t3_parent", blocking=True)
     $ renpy.config.skipping = None
     $ aig.cfg()["api_key"] = ""
     $ _aig_test(_d["source"] == "template", "跳过应走模板：%r" % (_d["source"],))
@@ -249,14 +274,15 @@ testcase skip_also_sticky:
 
 ## 反悔的唯一出口：显式 reroll() 才清掉这一拍的降级记录 + seed
 testcase reroll_clears_sticky:
+    $ store.turn = 3
     $ aig.reset_circuit()
     $ aig.cfg()["api_key"] = ""
     $ store.ai_template = {}
-    $ _d1 = aig.run("t1_free", blocking=True)
+    $ _d1 = aig.run("t3_parent", blocking=True)
     $ _aig_test(len(store.ai_template) == 1, "降级没落档：%r" % (len(store.ai_template),))
-    $ aig.reroll("t1_free")
+    $ aig.reroll("t3_parent")
     $ _aig_test(len(store.ai_template) == 0, "reroll 没清掉降级记录")
-    $ _d2 = aig.run("t1_free", blocking=True)
+    $ _d2 = aig.run("t3_parent", blocking=True)
     $ _aig_test(len(store.ai_template) == 1, "reroll 后应重新落一条")
     $ store.ai_template = {}
     $ aig.cfg()["api_key"] = ""
@@ -284,12 +310,13 @@ testcase prompt_data:
 
 ## 浮层「重跑这一拍」的接口：记下最近被钉住的那一拍，并能一次清干净
 testcase reroll_last_works:
+    $ store.turn = 3
     $ aig.reset_circuit()
     $ aig.cfg()["api_key"] = ""
     $ store.ai_template = {}
-    $ _d = aig.run("t1_free", blocking=True)
+    $ _d = aig.run("t3_parent", blocking=True)
     $ _now = aig.degraded_now()
-    $ _aig_test(_now.get("beat") == "t1_free", "没记下被钉住的拍：%r" % (_now,))
+    $ _aig_test(_now.get("beat") == "t3_parent", "没记下被钉住的拍：%r" % (_now,))
     $ _aig_test(aig.reroll_last() is True, "reroll_last 应返回 True")
     $ _aig_test(len(store.ai_template) == 0, "reroll_last 没清干净")
     $ _aig_test(aig.reroll_last() is False, "没东西可重跑时应返回 False")
@@ -306,3 +333,10 @@ testcase degrade_banner_shown:
     $ _aig_test(aig.degraded_now().get("reason") == "no_api_key", "横幅状态没记对理由")
     $ aig.damp_degraded()
     $ store.ai_template = {}
+## 每个已登记的拍都必须有显式 speaker 表：漏了会静默退到 mc+zm，
+## 新加的女性角色整拍台词会被校验剔掉，而且不报错（「空转」里最难发现的一种）
+testcase every_beat_has_speakers:
+    $ _miss = sorted(b for b in store.AI_BEATS if b not in aig.BEAT_SPEAKERS)
+    $ _aig_test(not _miss, "这些拍没有 speaker 表，会退到默认 mc+zm：%r" % (_miss,))
+    $ _empty = sorted(b for b, v in aig.BEAT_SPEAKERS.items() if not v)
+    $ _aig_test(not _empty, "这些拍的 speaker 表是空的：%r" % (_empty,))

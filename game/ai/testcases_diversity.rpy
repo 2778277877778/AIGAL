@@ -102,10 +102,11 @@ testcase div_seed_separates_runs:
 
 ## 3. 措辞变、结构不变：同一拍两份不同说法，形状一致且重合度 ≤ 0.4
 testcase div_shape_and_wording:
+    $ store.turn = 3
     python:
-        ## actions 直接给这一拍声明两个分支 id（t1_free 不在 BEAT_CHOICES 里，
+        ## actions 直接给这一拍声明两个分支 id（t3_parent 不在 BEAT_CHOICES 里，
         ## 默认是全量 ACTIONS，这里要的是「剧情分支 id」那种形状）。
-        _ctx = ai_ctx("t1_free", actions=("reveal", "ignore"), expect_choices=True)
+        _ctx = ai_ctx("t3_parent", actions=("reveal", "ignore"), expect_choices=True)
         _a = (
             '{"lines":['
             '{"speaker":"inner","text":"（门轴响了一声，琴声就停了。）"},'
