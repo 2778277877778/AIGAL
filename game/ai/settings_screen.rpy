@@ -62,9 +62,15 @@ screen ai_setup():
             else:
                 text "● 未就绪：不会发请求，整局走本地模板" size gui.scale(19) color "#e0a04a"
 
-            text ("当前 key：%s" % aig.dbg(aig.mask_key())):
-                size gui.scale(18)
-                color gui.idle_color
+            ## 没有 key 时不要显示「来源：（未填写）」——两个空括号并排，读着像出错了。
+            if aig.key_source():
+                text ("当前 key：%s　来源：%s" % (aig.dbg(aig.mask_key()), aig.dbg(aig.key_source_text()))):
+                    size gui.scale(18)
+                    color gui.idle_color
+            else:
+                text "当前 key：（未填写）":
+                    size gui.scale(18)
+                    color gui.idle_color
 
             ## 一键填地址和模型：省得玩家翻文档。key 不填，那是玩家自己的。
             hbox:

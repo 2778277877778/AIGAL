@@ -175,6 +175,14 @@ init -2 python in aig:
             return k[:2] + "••••"
         return "%s…%s（%d 位）" % (k[:4], k[-4:], len(k))
 
+    def key_source_text():
+        """key 从哪来，给玩家看的人话版（coding 的 key_source() 返回的是内部标识）。"""
+        return {
+            "session": "本次会话（只在内存，退出即失效）",
+            "env": "环境变量 AIGAL_API_KEY",
+            "persistent": "已保存的配置（明文写盘）",
+        }.get(key_source(), "（未填写）")
+
     def ready():
         c = cfg()
         return bool(key_effective().strip()) and bool((c.get("base_url") or "").strip())
@@ -510,6 +518,7 @@ init -2 python in aig:
             ("预取在飞", "%d" % pending_count()),
             ("key 模式", "仅本次会话（只在内存）" if key_mode() == "session" else "记住（明文写盘）"),
             ("key", mask_key()),
+            ("key 来源", key_source_text()),
             ("base_url", c.get("base_url") or ""),
             ("model", c.get("model") or ""),
             ("temperature", "%.2f" % _clamp(c.get("temperature", 0.8), TEMP_MIN, TEMP_MAX, 0.8)),

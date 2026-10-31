@@ -161,6 +161,35 @@ testcase debug_table:
     $ _aig_test("提示词段落" in _keys, "诊断表缺提示词统计")
     $ _aig_test("延迟 P50 / P95" in _keys, "诊断表缺延迟分位")
     $ _aig_test("超时率 / 失败率" in _keys, "诊断表缺超时率")
+    $ _aig_test("key 来源" in _keys, "诊断表缺 key 来源")
+
+## key 来源：会话 > 环境变量 > 落盘。玩家设了环境变量却以为没生效，看这一行就能排除。
+testcase key_source_shown:
+    python:
+        import os
+        _err = ""
+        _old = os.environ.get("AIGAL_API_KEY")
+        try:
+            os.environ["AIGAL_API_KEY"] = "sk-ui-env-test"
+            if aig.key_source() != "env":
+                _err = "有环境变量时来源应是 env，实际 %r" % (aig.key_source(),)
+            elif "环境变量" not in aig.key_source_text():
+                _err = "设置页没把 env 说成人话：%r" % (aig.key_source_text(),)
+            elif aig.key_effective() != "sk-ui-env-test":
+                _err = "key_effective 没取环境变量"
+            else:
+                aig.set_key("sk-ui-session-test", remember=False)
+                if aig.key_source() != "session":
+                    _err = "会话 key 应压过环境变量，实际 %r" % (aig.key_source(),)
+                elif aig.key_effective() != "sk-ui-session-test":
+                    _err = "会话 key 没压过环境变量"
+        finally:
+            aig.clear_key()
+            if _old is None:
+                os.environ.pop("AIGAL_API_KEY", None)
+            else:
+                os.environ["AIGAL_API_KEY"] = _old
+    $ _aig_test(_err == "", _err)
     $ _pfx = dict(_rows)["缓存 key 前缀"]
     $ _aig_test("|" in _pfx, "缓存前缀不像 cache.key 的前缀：%r" % (_pfx,))
     $ _aig_test(aig.last_line() != "", "last_line 给了空串")
