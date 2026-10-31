@@ -383,3 +383,33 @@ testcase div_page_edges:
         _div_test(_q[0].endswith("。"),
                   "第 1 页切在句子中间：末字是 %r，页长 %d（句号在第 41 字，应该切在它后面）"
                   % (_q[0][-1:], len(_q[0])))
+
+
+## 13. 用不上的字段不该毁掉可用的正文
+##     `choices` / `flags` 已经从契约里删了（Chief 定的），但模型可能照旧吐出来、类型还不对。
+##     只要 lines 合法就必须用 AI 正文；把 `flags: "none"` 这种错误放大成「整拍退回模板」，
+##     是这个契约里最不划算的一条失败路径。
+testcase div_malformed_optional_fields:
+    $ store.turn = 3
+    python:
+        _ctx = ai_ctx("t3_parent", expect_choices=False)
+        _bad = (
+            '{"lines":[{"speaker":"zm","text":"……你先坐。"}],'
+            '"choices":"无",'
+            '"flags":"none",'
+            '"mood":"静"}'
+        )
+        _v = ai_validate(_bad, _ctx)
+        _div_test(_v["ok"],
+                  "lines 合法、只是 choices/flags 类型不对，整拍就被拒了（reason=%r notes=%r）"
+                  % (_v["reason"], _v["notes"]))
+        _div_test(len(_v["lines"]) == 1,
+                  "正文没保住：%r" % (_v["lines"],))
+        _div_test(_v["flags"] == [],
+                  "类型不对的 flags 被采信了：%r" % (_v["flags"],))
+
+        ## 正常响应不受影响（防止改宽之后把该拦的也放过）
+        _good = ('{"lines":[{"speaker":"zm","text":"嗯。"}],'
+                 '"flags":[],"mood":"静"}')
+        _v2 = ai_validate(_good, _ctx)
+        _div_test(_v2["ok"] and len(_v2["lines"]) == 1, "正常响应被误伤：%r" % (_v2["reason"],))

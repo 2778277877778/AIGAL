@@ -340,3 +340,41 @@ testcase every_beat_has_speakers:
     $ _aig_test(not _miss, "这些拍没有 speaker 表，会退到默认 mc+zm：%r" % (_miss,))
     $ _empty = sorted(b for b, v in aig.BEAT_SPEAKERS.items() if not v)
     $ _aig_test(not _empty, "这些拍的 speaker 表是空的：%r" % (_empty,))
+## 任务表不能无限涨：clear_jobs 默认只留最近 20 条，keep=0 才真清空
+testcase jobs_ring_buffer:
+    $ aig.clear_jobs(0)
+    $ _ids = [aig.start_fake("ok", delay=0.01) for _n in range(30)]
+    $ _rs = [aig.wait(_i, timeout=2.0, blocking=True) for _i in _ids]
+    $ _aig_test(aig.status()["jobs"] == 30, "跑完应有 30 条：%r" % (aig.status()["jobs"],))
+    $ aig.clear_jobs()
+    $ _aig_test(aig.status()["jobs"] == 20, "默认应只留 20 条：%r" % (aig.status()["jobs"],))
+    $ aig.clear_jobs(0)
+    $ _aig_test(aig.status()["jobs"] == 0, "keep=0 应清空：%r" % (aig.status()["jobs"],))
+
+
+## 并发上限：在飞 2 个时，预取必须直接放弃，不许跟玩家的请求抢
+testcase inflight_cap:
+    $ aig.clear_jobs(0)
+    $ aig.reset_circuit()
+    $ _a = aig.start_fake("slow", delay=1.2)
+    $ _b = aig.start_fake("slow", delay=1.2)
+    $ _aig_test(aig._inflight() >= 2, "应该有两个在飞：%r" % (aig._inflight(),))
+    $ _aig_test(aig.start_http("http://127.0.0.1:9/x", {}, {}, tag="prefetch") == 0,
+                 "在飞满了，预取应直接返回 0")
+    $ aig.cancel_all()
+    $ aig.clear_jobs(0)
+
+
+## 延迟统计：P50/P95/超时率，空的时候也要能返回（诊断页不能崩）
+testcase latency_stats:
+    $ aig.reset_circuit()
+    $ aig.clear_jobs(0)
+    $ aig.reset_latency()
+    $ _0 = aig.latency_stats()
+    $ _aig_test(_0["n"] == 0 and _0["p50"] == 0.0, "清空后应返回 0：%r" % (_0,))
+    $ _id = aig.start_fake("ok", delay=0.05)
+    $ aig.wait(_id, blocking=True)
+    $ _1 = aig.latency_stats()
+    $ _aig_test(_1["n"] >= 1, "应记到一次耗时：%r" % (_1,))
+    $ _aig_test(_1["p50"] > 0 and _1["p95"] >= _1["p50"], "分位数不对：%r" % (_1,))
+    $ aig.clear_jobs(0)

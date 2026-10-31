@@ -534,3 +534,86 @@ testcase milestone_wiring:
                 assert _needle in _txt, "剧本没接这条里程碑：%s" % _f
         finally:
             (store.ms_done, store.flags, store.turn) = _saved
+
+
+## 剧情图：所有 jump / call 的目标都存在；从 start 能走到 ending_gate；
+## 36 个 label 齐全、依次 start_month、月末跳到下一个月。
+testcase story_graph:
+    pause .2
+
+    python:
+        import re
+
+        _texts = {}
+        for _f in renpy.list_files():
+            if _f.endswith(".rpy"):
+                _texts[_f] = renpy.open_file(_f).read().decode("utf-8")
+
+        _labels = {}
+        for _f, _txt in _texts.items():
+            _ms = list(re.finditer(r"^label\s+([A-Za-z0-9_]+)\s*[\(:]", _txt, re.M))
+            for _i, _m in enumerate(_ms):
+                _end = _ms[_i + 1].start() if _i + 1 < len(_ms) else len(_txt)
+                _labels[_m.group(1)] = _txt[_m.end():_end]
+
+        _edges = {}
+        for _name, _body in _labels.items():
+            _targets = set(re.findall(r"^\s*jump\s+([A-Za-z0-9_]+)", _body, re.M))
+            _targets |= set(re.findall(r"^\s*call\s+([A-Za-z0-9_]+)", _body, re.M))
+            _edges[_name] = _targets
+
+        _bad = []
+        for _name, _ts in _edges.items():
+            for _t in _ts:
+                if _t not in _labels:
+                    _bad.append("%s -> %s" % (_name, _t))
+        assert not _bad, "jump/call 指向不存在的 label：%s" % ", ".join(sorted(_bad))
+
+        _seen = set()
+        _stack = ["start"]
+        while _stack:
+            _n = _stack.pop()
+            if _n in _seen:
+                continue
+            _seen.add(_n)
+            for _t in _edges.get(_n, ()):
+                _stack.append(_t)
+
+        _order = ("t1_september", "t2_october", "t3_november", "t4_december",
+                  "t5_march", "t6_april", "t7_may", "t8_june",
+                  "t9_may", "t10_june", "t11_summer", "t12_summer_end",
+                  "t13_september", "t14_october", "t15_november", "t16_december",
+                  "t17_january", "t18_february", "t19_march", "t20_april",
+                  "t21_may", "t22_june", "t23_summer", "t24_summer_end",
+                  "t25_september", "t26_october", "t27_november", "t28_december",
+                  "t29_january", "t30_february", "t31_march", "t32_april",
+                  "t33_may", "t34_june", "t35_july", "t36_august")
+
+        for _i, _l in enumerate(_order):
+            assert _l in _labels, "少了月份 label：%s" % _l
+            assert _l in _seen, "从 start 走不到 %s" % _l
+            assert "start_month(%d)" % (_i + 1) in _labels[_l], "%s 没调 start_month(%d)" % (_l, _i + 1)
+            if _i + 1 < len(_order):
+                _nxt = _order[_i + 1]
+                assert re.search(r"^\s*jump\s+%s\b" % _nxt, _labels[_l], re.M), \
+                    "%s 没跳 %s" % (_l, _nxt)
+
+        assert "ending_gate" in _seen, "从 start 走不到 ending_gate"
+        assert re.search(r"^\s*call\s+ending_gate\b", _labels["t36_august"], re.M), "T36 没接结局"
+
+
+## 深冒烟：主菜单「开始」之后确实进了 T1，且 T2 的首拍能经假 provider 出正文。
+## （完整点击流跨 36 个月太脆，label 链路由 story_graph 静态兜住。）
+testcase smoke_deep:
+    $ _test.transition_timeout = 0.05
+    pause .3
+
+    python:
+        assert store.turn == 1, "开始之后应停在 T1，实际 T%s" % store.turn
+        _saved_turn = store.turn
+        store.turn = 2
+        try:
+            _d = aig.run("t2_piano", fake="ok", blocking=True)
+            assert _d["lines"], "t2_piano 经假 provider 没出正文：%r" % (_d["notes"],)
+        finally:
+            store.turn = _saved_turn
