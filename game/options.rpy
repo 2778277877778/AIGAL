@@ -1,4 +1,4 @@
-﻿## This file contains options that can be changed to customize your
+## This file contains options that can be changed to customize your
 ## game.
 ##
 ## Lines beginning with two '#' marks are comments, and you shouldn't

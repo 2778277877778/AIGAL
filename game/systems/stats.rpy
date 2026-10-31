@@ -1,4 +1,4 @@
-﻿## systems/stats.rpy
+## systems/stats.rpy
 ##
 ## 四数值 / 行动点 / Flag 的唯一入口。
 ## 口径来源：剧情大纲_三年_v1.md §6，数值表见本文件。
