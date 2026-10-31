@@ -14,6 +14,6 @@ label start:
 
     $ trace_reset()
 
-    "（高中校园物语 · 0.2.0）"
+    "（高中校园物语 · 0.2.1）"
 
     jump t1_september
