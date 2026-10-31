@@ -47,7 +47,7 @@ AI 层，`game/ai/` 下这些都在跑：
 
 校验的真身在 `game/python-packages/aigal/schema_core.py`，纯 Python，可以单独跑。
 
-测试：现在 65 条用例全过，`check_cards` 和 lint 都在链里。其中 `story_graph` 静态核对所有 `jump` / `call` 的目标都存在、从 `start` 能走到 `ending_gate`，`smoke_deep` 从主菜单走到 T2，`beat_coverage` 逐拍跑假请求，`milestone_wiring` 核里程碑挂点，`every_beat_has_speakers` 挡住漏登记 speaker 的静默降级。
+测试：现在 66 条用例全过，`check_cards` 和 lint 都在链里。其中 `story_graph` 静态核对所有 `jump` / `call` 的目标都存在、从 `start` 能走到 `ending_gate`，`smoke_deep` 从主菜单走到 T2，`beat_coverage` 逐拍跑假请求，`milestone_wiring` 核里程碑挂点，`every_beat_has_speakers` 挡住漏登记 speaker 的静默降级。
 
 还没验的只有一件：真模型。前面所有用例证明的都是「假 provider 下成立」。真模型守不守 JSON、字数和 speaker 白名单，返回能不能在 12 秒内到，中文读着像不像人写的，只有真请求能回答。
 
@@ -79,7 +79,9 @@ AI 层，`game/ai/` 下这些都在跑：
 2. 开新游戏，玩到 T2 旧琴房那一拍。这一拍会真的发请求。
 3. 第一遍每拍 5–10 秒是正常的（`SCHEMA_VER = 4` 让旧缓存全废，每拍都是现场请求）。
 
-key 有两种存法：默认存 `persistent`，明文落盘，界面上会照实提示；也可以选「仅本次会话」，只在内存里，重启要重填。方案里写的环境变量 `AIGAL_API_KEY` 还没实现，代码不读它，别指望这条路。
+key 有三种来源，优先级是**本次会话 > 环境变量 `AIGAL_API_KEY` > 落盘配置**。设置页填的默认存 `persistent`，明文落盘，界面上会照实提示；也可以选「仅本次会话」，只在内存里，重启要重填；无头测试或临时换 key 就直接设环境变量，它压过落盘值，也不会被写回存档——切存法时只搬内存和落盘里的 key，环境变量那份不碰。
+
+想知道当前这把 key 从哪来，看 `key_source()`，它返回 `session` / `env` / `persistent` / 空。设置页那一栏还在接。
 
 key 不进日志、不进仓库。日志里一律打码，请求体只留长度和前 200 字。
 
