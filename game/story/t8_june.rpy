@@ -24,10 +24,7 @@ label t8_june:
     "六月。倒计时牌上的数字变成了两位数。"
     nar "周墨的桌子上多了一摞招生简章，压在最下面那本，露出「医学」两个字。"
 
-    ## 温 M2（撞见另一面）——脚本过场；内容待文案按温线定稿
-    "放学后我在图书馆后门撞见温以宁。她把手里的东西往身后藏了一下。"
-    $ mark_milestone("x", 2)
-
+    ## 温 M2（撞见她在店里）——并进 t8_form 的事实清单
     ## 固定 · 学年期末
     $ exam_roll()
     $ t8_yearly_pass = exam_pass("yearly")
@@ -57,9 +54,10 @@ label t8_june:
     else:
         "我什么也没说。"
 
-    ## 主角自己的表
-    call ai_play("t8_form")
+    ## 主角自己的表（温 M2 的「她家店里」并进这一拍）
+    call ai_play("t8_form", "", "填表前，他在她家的小店里撞见她：她把一箱货往柜台后面挪，看见他就停下手；她只说「家里看店」，没多解释。")
     $ mark_milestone_for_beat("t8_form")
+    $ mark_milestone("x", 2)
     menu:
         "跟她填一样的（史地政）。":
             $ t8_form = "same"

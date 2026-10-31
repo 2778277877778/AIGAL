@@ -21,9 +21,9 @@ init -1 python:
     ## 每个回合的 AI 拍，顺序与 story/t2_october.rpy … t8_june.rpy 一致。
     ## T1 是手写（0 次 AI 调用），不计入 beat 序列。
     REPLAY_TURNS = (
-        (2, ("t2_piano", "t2_call")),
+        (2, ("t2_track", "t2_piano", "t2_call")),
         (3, ("t3_parent",)),
-        (4, ("t4_artfair",)),
+        (4, ("t4_borrow", "t4_artfair")),
         (5, ("t5_move", "t5_mother")),
         (6, ("t6_club",)),
         (7, ("t7_hall",)),
@@ -34,9 +34,9 @@ init -1 python:
     REPLAY_BASE_FLAGS = ("met_zhoumo", "offered_candy")
 
     REPLAY_FLAGS = {
-        2: ("heard_piano", "heard_call"),
+        2: ("heard_piano", "heard_call", "xia_met"),
         3: ("found_piano_room",),
-        4: ("art_fair", "sheet_music"),
+        4: ("art_fair", "sheet_music", "x_met"),
         5: ("piano_crisis",),
         6: ("club",),
         7: ("music_hall",),
