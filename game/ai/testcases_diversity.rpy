@@ -360,3 +360,26 @@ testcase div_route_endings:
         finally:
             store.rel_zm, store.rel_xia, store.rel_x = _saved[0], _saved[1], _saved[2]
             store.route, store.route_done = _saved[3], _saved[4]
+
+
+## 12. 分页的两个边界（独立复验，不依赖前端那份夹具）
+##     输入直接取 美工 复现时用的两串，断言看的是玩家真正读到的东西：
+##     首页不能是碎片、有句末标点时不能切在句子中间。
+testcase div_page_edges:
+    python:
+        ## ① 第 2 个字就是弱标点、其后 150 字无标点：首页不许只剩两个字
+        _head = "你，" + ("雨" * 150)
+        _p = page_text(_head, 100)
+        _div_test("".join(_p) == _head, "首页边界：切完拼不回原文")
+        _div_test(len(_p[0]) >= 10,
+                  "结局第一屏只有 %d 个字：%r（玩家最后读到的东西，不能是两个字的碎片）"
+                  % (len(_p[0]), _p[0]))
+
+        ## ② 句号在第 41 字、其后 120 字无标点：切点必须落在句号后，
+        ##    宁可这一页短，也不要在句子中间断（Chief 规则 2）。
+        _mid = ("字" * 40) + "。" + ("雨" * 120)
+        _q = page_text(_mid, 100)
+        _div_test("".join(_q) == _mid, "句中切点：切完拼不回原文")
+        _div_test(_q[0].endswith("。"),
+                  "第 1 页切在句子中间：末字是 %r，页长 %d（句号在第 41 字，应该切在它后面）"
+                  % (_q[0][-1:], len(_q[0])))

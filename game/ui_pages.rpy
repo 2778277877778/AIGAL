@@ -45,48 +45,70 @@ init -1 python:
         """把一条长台词切成若干页。返回字符串列表；原文为空返回空列表。
 
         不丢字、不重排：拼起来等于原文（只去掉各页首尾空白）。
+
+        两个数字要分清（README 也这么写）：
+          - 目标每页 ≤ limit（100）；
+          - 规则 3 合并碎片后允许到 109（100 + 9），这是设计上限，不是 bug；
+          - 124 是版面物理上限，109 < 124，所以合并后不会画出框。
         """
         limit = _page_limit(limit)
         text = (text or "")
         if not text.strip():
             return []
-        if len(text) <= limit:
+        total = len(text)
+        if total <= limit:
             return [text.strip()]
 
-        pages = []
-        buf = ""
-        for ch in text:
-            buf += ch
-            if len(buf) < limit:
-                continue
-            ## 到量了：先找句末标点，其次句内标点，都没有就硬切。
-            ## 回看窗口取 limit//3：再往前找会把这一页切得太短，反而不像一句话。
+        min_len = max(1, min(SAY_FRAGMENT_MIN, limit // 2))
+        pieces = []
+        i = 0
+        while i < total:
+            if total - i <= limit:        # 剩下的放得下，收尾
+                pieces.append(text[i:])
+                break
+
+            window_end = i + limit
+            ## 窗口内最短可接受的切点：切完这一页不足 min_len 就不要这个标点，
+            ## 否则句号挨在开头会切出一页两三个字（美工量出来的头部碎片）。
+            floor = i + min_len - 1
             cut = -1
-            back = max(0, len(buf) - limit // 3)
-            for i in range(len(buf) - 1, back - 1, -1):
-                if buf[i] in SAY_BREAK_STRONG:
-                    cut = i + 1
+            ## 规则 2：先在句末标点后切 —— 整个窗口都看，不只最后 1/3。
+            ## 只看最后 1/3 时，「句号在第 41 字」会被无视，结果硬切在句子中间。
+            for k in range(window_end - 1, floor - 1, -1):
+                if text[k] in SAY_BREAK_STRONG:
+                    cut = k + 1
                     break
             if cut < 0:
-                for i in range(len(buf) - 1, -1, -1):
-                    if buf[i] in SAY_BREAK_WEAK:
-                        cut = i + 1
+                for k in range(window_end - 1, floor - 1, -1):
+                    if text[k] in SAY_BREAK_WEAK:
+                        cut = k + 1
                         break
             if cut < 0:
-                cut = len(buf)
-            pages.append(buf[:cut])
-            buf = buf[cut:]
-        if buf.strip():
-            pages.append(buf)
+                cut = limit               # 一整段没有标点：硬切（兜底，正常不该走到）
 
-        ## 规则 3：碎片页并进上一页
-        merged = []
-        for piece in pages:
-            piece = piece.strip()
-            if not piece:
+            pieces.append(text[i:i + cut])
+            i += cut
+
+        ## 规则 3：碎片页合并。头一页就是碎片时没有上一页可并，先攒着拼到下一页前面。
+        out = []
+        carry = ""
+        for piece in pieces:
+            if carry:
+                piece = carry + piece
+                carry = ""
+            if not piece.strip():
                 continue
-            if merged and len(piece) < SAY_FRAGMENT_MIN:
-                merged[-1] = merged[-1] + piece
+            if len(piece.strip()) < min_len:
+                if out:
+                    out[-1] = out[-1] + piece        # 并进上一页（尾部碎片）
+                else:
+                    carry = piece                    # 第一页就是碎片：留给下一页
+                continue
+            out.append(piece)
+        if carry:
+            if out:
+                out[-1] = out[-1] + carry
             else:
-                merged.append(piece)
-        return merged
+                out.append(carry)
+
+        return [p.strip() for p in out if p.strip()]

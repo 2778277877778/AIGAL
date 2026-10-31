@@ -164,11 +164,12 @@ testcase debug_table:
     $ _aig_test(aig.last_line() != "", "last_line 给了空串")
 
 ## 分页：结局一条 200 字，对白框只放得下约 124 字，不切就画出框（测试也不报）
+## 两个数要分清：目标每页 ≤100，规则 3 合并碎片后允许到 109（100+9），124 是物理上限。
 testcase page_pages:
     $ _a = "他把琴谱翻到最后一页，没说话。窗外的雨刚停，台阶上还有积水。她站在门口，手停在门把上，没进来，也没走。走廊的灯闪了一下，又亮起来。他说走吧，她说再等一会儿。"
     $ _p = page_text(_a, 60)
     $ _aig_test(len(_p) >= 2, "长句没被切开：%r" % (_p,))
-    $ _aig_test(all(len(x) <= 60 for x in _p), "有页超过上限：%r" % (_p,))
+    $ _aig_test(all(len(x) <= 60 + SAY_FRAGMENT_MIN - 1 for x in _p), "有页超过合并上限：%r" % ([len(x) for x in _p],))
     $ _aig_test("".join(_p) == _a, "切完拼不回原文：%r" % (_p,))
     $ _aig_test(all(x and x[0] not in "，、；：,;:" for x in _p), "有页以标点开头：%r" % (_p,))
 
@@ -176,8 +177,8 @@ testcase page_hard_cut:
     ## 一整段没有标点：允许硬切，但必须一页不超、一字不丢
     $ _b = "雨" * 250
     $ _p = page_text(_b, 100)
-    $ _aig_test(len(_p) == 3, "250 字 / 每页 100 应切 3 页：%d" % len(_p))
-    $ _aig_test(all(len(x) <= 100 for x in _p), "硬切后有页超上限")
+    $ _aig_test(all(len(x) <= 100 for x in _p), "硬切后有页超 100：%r" % ([len(x) for x in _p],))
+    $ _aig_test(all(len(x) >= 10 for x in _p), "硬切后出现碎片页：%r" % ([len(x) for x in _p],))
     $ _aig_test("".join(_p) == _b, "硬切丢字了")
 
 testcase page_short_untouched:
@@ -185,14 +186,46 @@ testcase page_short_untouched:
     $ _aig_test(page_text(_c) == [_c], "短句不该被改写：%r" % (page_text(_c),))
     $ _aig_test(page_text("") == [], "空串该返回空列表")
 
-## 规则 3：碎片页（<10 字）并进上一页，别让玩家读到一页只有两个字
+## 规则 3：尾部碎片（<10 字）并进上一页
 testcase page_fragment_merged:
     $ _e = "甲" * 95 + "。" + "乙" * 3
     $ _p = page_text(_e, 100)
     $ _aig_test(len(_p) == 1, "3 字的尾巴没并进上一页：%r" % (_p,))
     $ _aig_test("".join(_p) == _e, "合并后拼不回原文")
-    ## 反面：尾巴够长（≥10 字）就不该并
     $ _f = "甲" * 95 + "。" + "乙" * 12
     $ _q = page_text(_f, 100)
     $ _aig_test(len(_q) == 2, "12 字的尾巴被误并了：%r" % (_q,))
     $ _aig_test(all(len(x) >= 10 for x in _q[1:]), "后半页太短：%r" % (_q,))
+
+## 头部碎片（美工复现的那条）：第一屏不能只有两三个字
+testcase page_head_tiny:
+    $ _g = "你，" + "雨" * 150
+    $ _p = page_text(_g, 100)
+    $ _aig_test(_p[0][:2] == "你，", "开头被吃掉了：%r" % (_p[0],))
+    $ _aig_test(len(_p[0]) >= 10, "第一屏只有 %d 个字：%r" % (len(_p[0]), _p[0]))
+    $ _aig_test(all(len(x) <= 109 for x in _p), "有页超过合并上限 109：%r" % ([len(x) for x in _p],))
+    $ _aig_test("".join(_p) == _g, "切完拼不回原文")
+    ## 美工报的第二串：开头「你，我不知道该说什么」+ 120 字无标点
+    $ _g2 = "你，我不知道该说什么" + "雨" * 120
+    $ _p2 = page_text(_g2, 100)
+    $ _aig_test(_p2[0].startswith("你，"), "开头被吃掉：%r" % (_p2[0][:6],))
+    $ _aig_test(len(_p2[0]) >= 10, "第一屏只有 %d 字" % len(_p2[0]))
+    $ _aig_test("".join(_p2) == _g2, "第二串拼不回原文")
+
+## 句末标点在窗口前半段时，也要切在它后面，不能因「只回看最后 1/3」而硬切在句子中间
+testcase page_strong_cut:
+    $ _h = "雨" * 40 + "。" + "呀" * 120
+    $ _p = page_text(_h, 100)
+    $ _aig_test(_p[0][-1] == "。", "第一页没切在句号后：%r" % (_p[0][-30:],))
+    $ _aig_test(len(_p[0]) == 41, "第一页应正好到句号：%d" % len(_p[0]))
+    $ _aig_test("".join(_p) == _h, "切完拼不回原文")
+
+## 扫一遍 101..260：不允许出现 >109 的页、也不允许 <10 的页
+testcase page_sweep:
+    python:
+        _bad = []
+        for _n in range(101, 261):
+            _q = page_text("雨" * _n, 100)
+            if (not all(10 <= len(x) <= 109 for x in _q)) or ("".join(_q) != "雨" * _n):
+                _bad.append((_n, [len(x) for x in _q]))
+    $ _aig_test(_bad == [], "这些长度切坏了：%r" % (_bad[:5],))

@@ -207,13 +207,19 @@ init -1 python:
         长台词分页走 ui_pages.rpy 的 page_text()：结局正文按 200 字/条写，
         对白框只放得下约 124 字，不分页就直接画出框外。那边有 page_* 三条用例，
         这里不再另写一份切分（重复实现等于两套真相）。
+        page_text 取不到就退回不分页——那文件正在被别人改时，
+        这里宁可少一次分页，也不要让整个 say 路径抛 NameError。
         """
+        _page = globals().get("page_text")
         for ln in lines:
             ch = getattr(store, ln["speaker"], None)
             if ch is None:
                 continue
             txt = ai_render(ln["text"])
-            pieces = page_text(txt, SAY_PAGE_MAX) if len(txt) > SAY_PAGE_MAX else [txt]
+            if _page is not None and len(txt) > SAY_PAGE_MAX:
+                pieces = _page(txt, SAY_PAGE_MAX)
+            else:
+                pieces = [txt]
             for piece in pieces:
                 renpy.say(ch, piece)
         return True
