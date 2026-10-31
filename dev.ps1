@@ -188,7 +188,27 @@ switch ($Command) {
         }
     }
     'distribute' {
-        & $py (Join-Path $sdk 'renpy.py') $repo distribute
+        ## Ren'Py 8.5.3 没有 distribute 命令：注册过的 CLI 命令只有
+        ## run / lint / compile / rmpersistent / quit（外加游戏自己注册的 test 等）。
+        ## 构建逻辑在 launcher/game/distribute.rpy 的 Distributor 里，只有启动器 GUI
+        ## 能驱动，所以这里只负责把启动器打开；真正构建仍然要手点一次。
+        ##
+        ## 不用 & 直接调用：启动器是常驻窗口，& 会一直挂着，还占着 dev.ps1 的锁。
+        $launcher = Join-Path $sdk 'renpy.exe'
+        Write-Host "打包没有命令行入口：Ren'Py 8.5.3 没有 distribute 命令，构建只能在启动器里做。" -ForegroundColor Yellow
+        Write-Host "  1. 启动器 Preferences → Projects Directory 设成 $(Split-Path $repo -Parent)（只需一次）"
+        Write-Host "  2. 项目列表里选 $(Split-Path $repo -Leaf) → Build Distributions → 勾 Windows → Build"
+        Write-Host "  3. 产物在 $(Join-Path $repo 'dist')"
+        Write-Host "注意：本项目还没有实际构建成功过，产物也没在没装 SDK 的机器上试过。" -ForegroundColor Yellow
+
+        if (Test-Path $launcher) {
+            Start-Process -FilePath $launcher -WorkingDirectory $sdk
+        }
+        else {
+            Write-Host "找不到 $launcher，请手动打开 SDK 启动器。" -ForegroundColor Red
+            exit 1
+        }
+        exit 0
     }
     default {
         ## diversity：差异观测，不进默认链（跟 shots 一样）。

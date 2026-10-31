@@ -100,8 +100,12 @@ key 不进日志、不进仓库。日志里一律打码，请求体只留长度�
 .\dev.ps1 diversity    # 台词差异报告，逐拍打印抽到的细节
 .\dev.ps1 compile      # 生成 .rpyc
 .\dev.ps1 shots        # 截图比对，改过版式先跑 shots overwrite
-.\dev.ps1 distribute   # 打包 Windows 版
+.\dev.ps1 distribute   # 打开启动器，打包要手点（见下）
 ```
+
+打包没有命令行入口。Ren'Py 8.5.3 注册的 CLI 命令只有 `run` / `lint` / `compile` / `rmpersistent` / `quit`，构建逻辑在启动器的 `Distributor` 里，只有 GUI 能驱动。所以 `dev.ps1 distribute` 只是把启动器打开，真正构建要自己在 Build Distributions 里勾 Windows 再点 Build，产物落在 `dist/`。
+
+**本项目还没有实际构建验证过**：一次都没成功打出过包，产物也没在没装 SDK 的机器上试过。等真做一次、确认能跑，再把这句改成事实。`project.json` 现在是 `normal`，否则启动器项目列表里根本看不到这个仓库。
 
 不用 `dev.ps1` 时，`<SDK>` 是 SDK 目录，`<仓库>` 是仓库根目录：
 

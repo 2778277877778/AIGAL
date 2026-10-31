@@ -23,7 +23,8 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)                      # gal/
 SRC = os.path.join(ROOT, "高中校园物语", "提示词_角色_v1.md")
-OUTLINE = os.path.join(ROOT, "高中校园物语", "剧情大纲_三年_v1.md")     ## §2.6 的机器可读细节段
+OUTLINE = os.path.join(ROOT, "高中校园物语", "剧情大纲_三年_v1.md")     ## §2.7 的机器可读细节段
+SCHEMA = os.path.join(ROOT, "game", "ai", "schema.rpy")           ## AI_BEATS 的唯一来源
 OUT = os.path.join(ROOT, "game", "ai", "prompts_data.rpy")
 
 _HEAD_RE = re.compile(r"^###\s+(.+?)\s*$")
@@ -108,6 +109,8 @@ def parse_details(text):
     认得形状却被丢掉的键会打到 stderr，不许静默——2026-10-30 就因为只认 t\\d+_ 把 20 个 e_* 全吞了。
     """
     details = {}
+    dupes = []
+    empties = []
     for line in text.splitlines():
         m = _DETAIL_RE.match(line.strip())
         if not m:
@@ -118,15 +121,41 @@ def parse_details(text):
             continue
         items = [x.strip() for x in body.split("/")]
         items = [x for x in items if x]
-        if items:
-            details[key] = items
-    return details
+        if not items:
+            ## 围栏写坏时会走到这里；静默跳过等于丢一条细节还不吭声
+            empties.append(key)
+            continue
+        if key in details:
+            ## dict 会静默后者覆盖前者，t2_track 上踩过
+            dupes.append(key)
+            continue
+        details[key] = items
+    return details, dupes, empties
+
+
+_BEAT_ANY_RE = re.compile(r'"(t\d+_[a-z0-9_]+)"\s*:\s*dict\(')
+_EVENT_RE = re.compile(r"^e_[a-z0-9_]+$")     ## 事件拍由 EVENT_POOL 动态派发，不在 AI_BEATS 字面量里
+
+
+def parse_beat_ids(path):
+    """从 schema.rpy 抓 AI_BEATS 的键。抓不到就返回 None，调用方据此跳过过滤。
+
+    e_* 事件拍由 EVENT_POOL 动态派发，所以不在 AI_BEATS 的字面量里，单独放行；
+    t*_free 由 AI_FREE_BEATS 合成，但自由行动已经不走 AI，细节用不上，一并滤掉。
+    """
+    if not os.path.exists(path):
+        return None
+    ids = set()
+    with io.open(path, encoding="utf-8") as f:
+        for m in _BEAT_ANY_RE.finditer(f.read()):
+            ids.add(m.group(1))
+    return ids or None
 
 
 def emit(paras, details):
     out = io.StringIO()
     out.write("## 自动生成，别手改。\n")
-    out.write("## 源文件：高中校园物语/提示词_角色_v1.md 与 剧情大纲_三年_v1.md §2.6\n")
+    out.write("## 源文件：高中校园物语/提示词_角色_v1.md 与 剧情大纲_三年_v1.md §2.7\n")
     out.write("## 重新生成：python tests/build_prompts.py\n")
     out.write("## prompt 内容一变，schema_core.PROMPT_VER 要一起升，否则旧缓存会顶掉新提示词。\n\n")
     out.write("init -4 python in aig:\n\n")
@@ -148,17 +177,71 @@ def main():
         sys.stderr.write("找不到源文件：%s\n" % SRC)
         return 1
     with io.open(SRC, encoding="utf-8") as f:
-        paras = parse(f.read())
+        src_text = f.read()
+    paras = parse(src_text)
     if not paras:
         sys.stderr.write("一个段落都没解析出来，检查标记格式\n")
         return 1
+    ## 标题写了、正文没取到也叫「section 解析出 0 条」——围栏写坏时就是这个样子，
+    ## 静默跳过会让这个角色在提示词里消失，而 lint 和测试都不会红。
+    seen = set()
+    for line in src_text.splitlines():
+        m = _HEAD_RE.match(line)
+        if m:
+            seen.update(_ID_RE.findall(m.group(1)))
+    missing = sorted(pid for pid in seen
+                     if pid not in paras and (pid + "_ending") not in paras)
+    if missing:
+        sys.stderr.write("这些段落有标题但没有正文（围栏可能写坏了）：%s\n"
+                         % ", ".join(missing))
+        return 1
     details = {}
+    dupes = []
+    empties = []
     for extra in (OUTLINE,):
         if os.path.exists(extra):
             with io.open(extra, encoding="utf-8") as f:
-                details.update(parse_details(f.read()))
+                d, dp, em = parse_details(f.read())
+            for k, v in d.items():
+                if k in details:
+                    dupes.append(k)          ## 跨文件重复也要报
+                else:
+                    details[k] = v
+            dupes.extend(dp)
+            empties.extend(em)
+
+    ## 两道出声的闸。理由不是今天这两次手误，是「改源文件的人不知道生成器会沉默地吃下去」：
+    ## 围栏写坏 → 空块 → 静默少一条细节；拍 id 写两遍 → dict 后者覆盖前者 → 静默换掉正文。
+    if dupes:
+        sys.stderr.write("源文件里拍 id 重复（后者会静默覆盖前者）：%s\n"
+                         % ", ".join(sorted(set(dupes))))
+        return 1
+    if empties:
+        sys.stderr.write("有些拍的细节行是空的（围栏可能写坏了）：%s\n"
+                         % ", ".join(sorted(set(empties))))
+        return 1
+    if not details:
+        sys.stderr.write("一条细节都没解析出来，检查 §2.7 的格式（大括号/围栏/分隔符）\n")
+        return 1
+
+    ## 按 AI_BEATS 白名单过滤：大纲里改期/合并掉的旧拍 id 不再生成进代码。
+    ## 源文件里那几行也删了，但生成器这道闸是在源头又被加回来时不至于复发。
+    known = parse_beat_ids(SCHEMA)
+    dropped = []
+    if known:
+        keep = {}
+        for bid, items in details.items():
+            if bid in known or _EVENT_RE.match(bid):
+                keep[bid] = items
+            else:
+                dropped.append(bid)
+        details = keep
+
     with io.open(OUT, "w", encoding="utf-8", newline="\n") as f:
         f.write(emit(paras, details))
+    if dropped:
+        print("  按 AI_BEATS 过滤掉 %d 个未登记拍：%s"
+              % (len(dropped), ", ".join(sorted(dropped))))
     print("写出 %s：%d 个段落，%d 拍的细节（共 %d 条）"
           % (OUT, len(paras), len(details), sum(len(v) for v in details.values())))
     print("  公共段：%s" % ", ".join(sorted(p for p in paras if p[2:3] in "ABCD")))

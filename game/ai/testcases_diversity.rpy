@@ -10,8 +10,10 @@
 ## 明确验不到的（不是漏写，是缺前提）：
 ##   · 真实措辞的差异率——fake provider 每次返回同一段文本，测不出 0.4 阈值；
 ##     那一条要真 key，用 ai_debug 里抓到的两段真实返回去算。
-##   · 同一条选择轨迹重放后的 beat 序列 / Flag 集合——等后端的只读回放接口。
-##   · 随机事件不改主线——事件池还没进代码。
+##   · 随机事件不改主线——由 `event_pool` 那条用例覆盖事件池本身，
+##     但「事件只动 rel 和事件 Flag、不进结局判定」还没人做成断言。
+##
+## 已实现、本文档历史注释里说「还没做」的两项（回放接口、事件池）都已落地，别再按旧注释排查。
 ##
 ## 离线部分在 tests/selftest_diversity.py（度量标定），不占 Ren'Py 实例。
 ################################################################################
@@ -290,7 +292,7 @@ testcase diversity_report:
         _real = getattr(aig, "BEAT_DETAILS", {}) or {}
         _beats = len(_real)
         _items = sum(len(v) for v in _real.values())
-        print("DETAILS beats=%d items=%d (预期 52 拍 / 132 条)" % (_beats, _items))
+        print("DETAILS beats=%d items=%d" % (_beats, _items))
 
         for _bid in sorted(_real)[:6]:
             _d = _real[_bid]
@@ -308,8 +310,8 @@ testcase diversity_report:
         ## 否则每次提交都会被一条「等文案数据」的断言卡住。
         import os
         _strict = os.environ.get("AIGAL_DIVERSITY") == "1"
-        _msg = ("BEAT_DETAILS 是空的——大纲 §2.6 的 132 条还没进代码，"
-                "现在每拍抽到的细节都是空串，差异只剩温度采样")
+        _msg = ("BEAT_DETAILS 是空的——源是 §2.7，生成物在 prompts_data.rpy；"
+                "空表说明生成器没跑或产物没加载，不是「文案还没写」")
         if _strict:
             _div_test(_beats > 0, _msg)
         elif _beats == 0:
@@ -413,3 +415,119 @@ testcase div_malformed_optional_fields:
                  '"flags":[],"mood":"静"}')
         _v2 = ai_validate(_good, _ctx)
         _div_test(_v2["ok"] and len(_v2["lines"]) == 1, "正常响应被误伤：%r" % (_v2["reason"],))
+
+
+## 14. 静态表守卫：这三种问题今天各踩过一次，靠临时脚本查一次就丢，做成常驻
+##     ① 字典重复键（后写静默覆盖前写，lint 不报）
+##     ② 跨文件重名 label（后定义覆盖先定义，跳转静默走错）
+##     ③ 四处登记对齐（AI_BEATS / FALLBACK / BEAT_SPEAKERS / BEAT_DETAILS）
+##     注意：测试的 python 块是 exec(globals, locals) 跑的，**不能用推导式**。
+testcase div_static_tables:
+    python:
+        import re
+
+        def _read(rel):
+            _fh = renpy.loader.load(rel)
+            _b = _fh.read()
+            _fh.close()
+            return _b.decode("utf-8", "replace") if not isinstance(_b, str) else _b
+
+        def _block(text, name):
+            """取 NAME = { ... } 这段（按花括号配平，能穿过嵌套）。"""
+            _start = text.find(name + " = {")
+            if _start < 0:
+                return ""
+            _i = text.find("{", _start)
+            _depth = 0
+            _j = _i
+            while _j < len(text):
+                if text[_j] == "{":
+                    _depth += 1
+                elif text[_j] == "}":
+                    _depth -= 1
+                    if _depth == 0:
+                        return text[_i:_j + 1]
+                _j += 1
+            return text[_i:]
+
+        def _dups(block, pat, rx):
+            ## re 必须当参数传进来：这个 python 块是 exec(globals, locals) 跑的，
+            ## 嵌套函数查名字走 globals，看不到块内 import 的 re。
+            _seen = {}
+            _bad = []
+            for _k in rx.findall(pat, block):
+                if _k in _seen:
+                    _bad.append(_k)
+                _seen[_k] = True
+            _bad.sort()
+            return _bad
+
+        ## ① 五张表各自的键不许重复
+        _specs = (
+            ("ai/schema.rpy", "AI_BEATS", r'"([a-z0-9_]+)"\s*:\s*dict\('),
+            ("ai/fallback.rpy", "FALLBACK", r'"([a-z0-9_]+)"\s*:\s*[\{\(]'),
+            ("ai/prompts_data.rpy", "BEAT_DETAILS", r"'([a-z0-9_]+)'\s*:\s*\("),
+            ("ai/prompts.rpy", "BEAT_SPEAKERS", r'"([a-z0-9_]+)"\s*:\s*\('),
+            ("ai/prompts.rpy", "BEAT_CHOICES", r'"([a-z0-9_]+)"\s*:\s*\('),
+        )
+        for _rel, _name, _pat in _specs:
+            _d = _dups(_block(_read(_rel), _name), _pat, re)
+            _div_test(not _d, "%s 里 %s 有重复键：%r（后写会静默覆盖前写）"
+                      % (_rel, _name, _d))
+
+        ## ② label 不许跨文件重名
+        _labels = {}
+        _dup_labels = []
+        for _f in renpy.list_files():
+            if not (("story/" in _f or "ai/" in _f) and _f.endswith(".rpy")):
+                continue
+            for _m in re.finditer(r"^label\s+([A-Za-z0-9_]+)", _read(_f), re.M):
+                _n = _m.group(1)
+                if _n in _labels:
+                    _dup_labels.append("%s（%s 与 %s）" % (_n, _labels[_n], _f))
+                else:
+                    _labels[_n] = _f
+        _div_test(not _dup_labels, "跨文件重名 label：%r" % (_dup_labels,))
+
+        ## ③ 四处登记对齐
+        _beats = set()
+        for _k in re.findall(r'"([a-z0-9_]+)"\s*:\s*dict\(',
+                             _block(_read("ai/schema.rpy"), "AI_BEATS")):
+            _beats.add(_k)
+        _fallback = set()
+        for _k in re.findall(r'"([a-z0-9_]+)"\s*:\s*[\{\(]',
+                             _block(_read("ai/fallback.rpy"), "FALLBACK")):
+            _fallback.add(_k)
+        _speakers = set()
+        for _k in re.findall(r'"([a-z0-9_]+)"\s*:\s*\(',
+                             _block(_read("ai/prompts.rpy"), "BEAT_SPEAKERS")):
+            _speakers.add(_k)
+        _details = set()
+        for _k in re.findall(r"'([a-z0-9_]+)'\s*:\s*\(",
+                             _block(_read("ai/prompts_data.rpy"), "BEAT_DETAILS")):
+            _details.add(_k)
+
+        print("STATIC beats=%d fallback=%d speakers=%d details=%d"
+              % (len(_beats), len(_fallback), len(_speakers), len(_details)))
+        _div_test(len(_beats) > 0, "AI_BEATS 一个都没解析出来，这条守卫本身失效了")
+
+        for _name, _s in (("FALLBACK", _fallback), ("BEAT_SPEAKERS", _speakers),
+                          ("BEAT_DETAILS", _details)):
+            _miss = []
+            _extra = []
+            for _b in _beats:
+                if _b not in _s:
+                    _miss.append(_b)
+            for _b in _s:
+                if _b not in _beats:
+                    ## 事件池那 20 个 e_* 由 EVENT_POOL 动态派发，本来就不在 AI_BEATS 字面量里，
+                    ## 但它们必须有细节（事件槽会播到）。规则：BEAT_DETAILS ⊆ AI_BEATS ∪ {e_*}，
+                    ## 和 build_prompts.py 里那道白名单是同一套；其余多出来的都是死数据。
+                    if not _b.startswith("e_"):
+                        _extra.append(_b)
+            _miss.sort()
+            _extra.sort()
+            _div_test(not _miss, "%s 缺这些拍的条目：%r" % (_name, _miss))
+            _div_test(not _extra,
+                      "%s 多出这些不存在的拍：%r（既不在 AI_BEATS 里，也不是动态派发的 e_*，"
+                      "登记了但永远读不到）" % (_name, _extra))
