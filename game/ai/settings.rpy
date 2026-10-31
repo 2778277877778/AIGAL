@@ -25,6 +25,7 @@
 
 init -2 python in aig:
 
+    import os
     import time
 
     ## 设置项范围：手改 persistent 也夹得回来，界面不给输错的机会。
@@ -98,11 +99,38 @@ init -2 python in aig:
         m = cfg().get("key_mode")
         return m if m in ("persistent", "session") else "persistent"
 
-    def key_effective():
-        """请求层唯一该拿 key 的入口（director 的 api_ready / _dispatch 换成它）。"""
+    def _key_stored():
+        """只取「存下来的」key：内存或落盘。切模式、搬 key 用它，别把环境变量搬进存档。"""
         if key_mode() == "session":
             return _SESSION.get("key") or ""
         return cfg().get("api_key") or ""
+
+    def key_effective():
+        """请求层唯一该拿 key 的入口（director 的 api_ready / _dispatch 换成它）。
+
+        优先级：本次会话 > 环境变量 AIGAL_API_KEY > 落盘配置。
+        环境变量压过落盘值，是为了无头测试和临时换 key 不用先清存档。
+        会话模式且没填 key 时不回落落盘值——那等于没切模式。
+        """
+        s = (_SESSION.get("key") or "").strip()
+        if s:
+            return s
+        env = (os.environ.get("AIGAL_API_KEY") or "").strip()
+        if env:
+            return env
+        if key_mode() == "session":
+            return ""
+        return cfg().get("api_key") or ""
+
+    def key_source():
+        """key 从哪来：session / env / persistent / ""。设置页和诊断页显示用。"""
+        if (_SESSION.get("key") or "").strip():
+            return "session"
+        if (os.environ.get("AIGAL_API_KEY") or "").strip():
+            return "env"
+        if key_mode() != "session" and (cfg().get("api_key") or "").strip():
+            return "persistent"
+        return ""
 
     def set_key(text, remember=None):
         """remember: True 落 persistent / False 只留内存 / None 跟当前模式。"""
@@ -123,7 +151,7 @@ init -2 python in aig:
         """切模式时把 key 搬到对应的地方，别让玩家填两次。"""
         if mode not in ("persistent", "session"):
             return key_mode()
-        cur = key_effective()
+        cur = _key_stored()
         if mode == "session":
             _SESSION["key"] = cur
             set_conf("api_key", "")

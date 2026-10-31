@@ -378,3 +378,25 @@ testcase latency_stats:
     $ _aig_test(_1["n"] >= 1, "应记到一次耗时：%r" % (_1,))
     $ _aig_test(_1["p50"] > 0 and _1["p95"] >= _1["p50"], "分位数不对：%r" % (_1,))
     $ aig.clear_jobs(0)
+## 环境变量 AIGAL_API_KEY：优先级 会话 > 环境变量 > 落盘，且删掉环境变量后能回退
+testcase key_env_var:
+    $ import os
+    $ _mode0 = aig.key_mode()
+    $ _sess0 = aig._SESSION.get("key") or ""
+    $ _cfg0 = aig.cfg().get("api_key") or ""
+    $ aig._SESSION["key"] = ""
+    $ aig.cfg()["api_key"] = "sk-persist-test"
+    $ aig.set_key_mode("persistent")
+    $ os.environ["AIGAL_API_KEY"] = "sk-env-test"
+    $ _aig_test(aig.key_effective() == "sk-env-test", "环境变量应压过落盘配置：%r" % (aig.key_effective(),))
+    $ _aig_test(aig.key_source() == "env", "来源应为 env：%r" % (aig.key_source(),))
+    $ aig._SESSION["key"] = "sk-session-test"
+    $ _aig_test(aig.key_effective() == "sk-session-test", "会话 key 应压过环境变量：%r" % (aig.key_effective(),))
+    $ del os.environ["AIGAL_API_KEY"]
+    $ _aig_test(aig.key_effective() == "sk-session-test", "删环境变量后会话 key 应还在")
+    $ aig._SESSION["key"] = ""
+    $ _aig_test(aig.key_effective() == "sk-persist-test", "最后应回落到落盘配置：%r" % (aig.key_effective(),))
+    $ _aig_test(aig.key_source() == "persistent", "来源应为 persistent：%r" % (aig.key_source(),))
+    $ aig.cfg()["api_key"] = _cfg0
+    $ aig._SESSION["key"] = _sess0
+    $ aig.set_key_mode(_mode0)
