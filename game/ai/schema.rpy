@@ -20,6 +20,10 @@ init -2 python:
     AI_PROMPT_VER = aischema.PROMPT_VER
     AI_NAME_TOKEN = aischema.NAME_TOKEN
 
+    ## 对白分页阈值：对白框每行约 31 字、4 行封顶 ≈124 字，取 100 留余量。
+    ## 结局正文允许写 200 字/条，靠 ai_say 分页落到框里，不靠压字数。
+    SAY_PAGE_MAX = 100
+
 
 init -1 python:
 
@@ -34,6 +38,7 @@ init -1 python:
 
         ## T2 十月（合并后只剩主拍 + 楼梯间；考试不调 AI）
         "t2_piano":       dict(turn=2, flags=(), expect_choices=False),
+        "t2_track":       dict(turn=2, flags=(), expect_choices=False),
         "t2_call":        dict(turn=2, flags=(), expect_choices=False),
 
         ## T3 十一月（旧琴房并进 T2 主拍；考试不调 AI）
@@ -41,6 +46,7 @@ init -1 python:
 
         ## T4 十二月（元旦回礼、寒假前父亲并进主拍；考试不调 AI）
         "t4_artfair":     dict(turn=4, flags=(), expect_choices=False),
+        "t4_borrow":      dict(turn=4, flags=(), expect_choices=False),
 
         ## T5 三月（曾老师并进主拍）
         "t5_move":        dict(turn=5, flags=(), expect_choices=False),
@@ -113,18 +119,11 @@ init -1 python:
         "e_university":   dict(turn=26, turns=(26, 27),        flags=(), expect_choices=False),
     }
 
-    ## 自由行动段每个月都有，不用一个月往表里抄一行。
-    ## 用 tuple 不用生成器：生成器被 `in` 判定消费一次就空了，第二次起永远命不中。
-    AI_FREE_BEATS = tuple("t%d_free" % n for n in range(1, 37))
-
+    ## 自由段不再走 beat：`free_scene()` 直接按 action_key 取模板变体池，
+    ## 一整族 `t*_free` 没有任何调用点。合成逻辑已删（保留它就是留一族半死的拍）。
     def ai_beat(beat_id):
-        """取 beat 定义。t3_free…t8_free 按需合成，其余必须已登记。"""
-        b = AI_BEATS.get(beat_id)
-        if b is not None:
-            return b
-        if beat_id in AI_FREE_BEATS:
-            return dict(turn=int(beat_id[1]), flags=(), expect_choices=True)
-        return None
+        """取 beat 定义。free 段不在这里，未登记一律返回 None。"""
+        return AI_BEATS.get(beat_id)
 
     def ai_beat_ok(beat_id):
         """运行期用这个：返回 (bool, 说明)。对不上不该让玩家崩，走模板降级。"""
@@ -203,12 +202,20 @@ init -1 python:
         return aischema.strip_markup(text.replace(AI_NAME_TOKEN, safe_name))
 
     def ai_say(lines):
-        """按 speaker id 逐个说。渲染前再洗一次，AI 文本是外部输入。"""
+        """按 speaker id 逐个说。渲染前再洗一次，AI 文本是外部输入。
+
+        长台词分页走 ui_pages.rpy 的 page_text()：结局正文按 200 字/条写，
+        对白框只放得下约 124 字，不分页就直接画出框外。那边有 page_* 三条用例，
+        这里不再另写一份切分（重复实现等于两套真相）。
+        """
         for ln in lines:
             ch = getattr(store, ln["speaker"], None)
             if ch is None:
                 continue
-            renpy.say(ch, ai_render(ln["text"]))
+            txt = ai_render(ln["text"])
+            pieces = page_text(txt, SAY_PAGE_MAX) if len(txt) > SAY_PAGE_MAX else [txt]
+            for piece in pieces:
+                renpy.say(ch, piece)
         return True
 
     def ai_apply_flags(flags, ctx):

@@ -20,11 +20,13 @@ init -3 python in aig:
     BEAT_SPEAKERS = {
 
         "t2_piano":       ("mc", "zm", "inner"),
+        "t2_track":       ("mc", "xia", "nar"),
         "t2_call":        ("mc", "zm", "zm_dad"),
 
         "t3_parent":      ("mc", "zm", "zm_dad", "inner"),
 
         "t4_artfair":     ("mc", "zm", "kong", "inner"),
+        "t4_borrow":      ("mc", "x", "nar"),
 
         "t5_move":        ("mc", "zm", "inner"),
         "t5_mother":      ("mc", "zm", "zm_mom", "inner"),
@@ -90,11 +92,13 @@ init -3 python in aig:
     ## 本拍场景的一句话提示。同样按实际剧本补。
     BEAT_SCENE = {
         "t2_piano":       "主角推门撞见周墨在旧琴房弹琴。",
+        "t2_track":       "教室，运动会报名表传下来；夏幸悠把八百米那栏填了他的名字。",
         "t2_call":        "月考后，楼梯间，周墨在接家里的电话。",
 
         "t3_parent":      "家长会，教室走廊；周墨父亲到了，主角喊错了称呼。",
 
         "t4_artfair":     "艺术节，礼堂；钢琴伴奏是周墨弹的，名字没有报。",
+        "t4_borrow":      "图书馆，参考书只剩一本；温以宁和他同时伸手。",
 
         "t5_move":        "艺术楼四楼，走廊；琴房要清空，她一个人在装箱，主角来帮忙。",
         "t5_mother":      "楼梯间，夜里；周墨母亲打来电话，说再跟她父亲说说。",
