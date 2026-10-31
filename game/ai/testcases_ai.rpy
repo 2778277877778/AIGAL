@@ -381,12 +381,15 @@ testcase latency_stats:
 ## 环境变量 AIGAL_API_KEY：优先级 会话 > 环境变量 > 落盘，且删掉环境变量后能回退
 testcase key_env_var:
     $ import os
+    $ _aig_case_reset(None, 1)
     $ _mode0 = aig.key_mode()
     $ _sess0 = aig._SESSION.get("key") or ""
     $ _cfg0 = aig.cfg().get("api_key") or ""
     $ aig._SESSION["key"] = ""
-    $ aig.cfg()["api_key"] = "sk-persist-test"
+    ## 先切模式再写落盘值：set_key_mode 会把「当前存下来的 key」搬到新位置，
+    ## 反过来的话它会把刚写进去的 sk-persist-test 覆盖成空串（这条用例第一次就是这么挂的）。
     $ aig.set_key_mode("persistent")
+    $ aig.cfg()["api_key"] = "sk-persist-test"
     $ os.environ["AIGAL_API_KEY"] = "sk-env-test"
     $ _aig_test(aig.key_effective() == "sk-env-test", "环境变量应压过落盘配置：%r" % (aig.key_effective(),))
     $ _aig_test(aig.key_source() == "env", "来源应为 env：%r" % (aig.key_source(),))
