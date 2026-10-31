@@ -503,6 +503,14 @@ testcase milestone_wiring:
             assert stage_of("zm") == 4, "10 条里程碑应为 stage 4"
             for _f in MILESTONE_FLAGS["zm"]:
                 assert has_flag(_f), "里程碑没置 Flag：%s" % _f
+
+            ## 夏 M1/M2、温 M1/M2：T2/T6/T4/T8 的脚本过场（没有独立 beat）
+            mark_milestone("xia", 1)
+            mark_milestone("xia", 2)
+            mark_milestone("x", 1)
+            mark_milestone("x", 2)
+            assert ms_count("xia") == 2 and ms_count("x") == 2, "夏/温前两个里程碑没记上"
+            assert has_flag("xia_met") and has_flag("x_met"), "夏/温 M1 应置 Flag"
             assert mark_milestone_for_beat("t99_nope") == 0
 
             ## 静态核对：story 里真的有这些调用行
@@ -517,6 +525,10 @@ testcase milestone_wiring:
                 ("story/t7_may.rpy", 'mark_milestone_for_beat("t7_hall")'),
                 ("story/t8_june.rpy", 'mark_milestone_for_beat("t8_subject")'),
                 ("story/t8_june.rpy", 'mark_milestone_for_beat("t8_form")'),
+                ("story/t2_october.rpy", 'mark_milestone("xia", 1)'),
+                ("story/t6_april.rpy", 'mark_milestone("xia", 2)'),
+                ("story/t4_december.rpy", 'mark_milestone("x", 1)'),
+                ("story/t8_june.rpy", 'mark_milestone("x", 2)'),
             ):
                 _txt = renpy.open_file(_f).read().decode("utf-8")
                 assert _needle in _txt, "剧本没接这条里程碑：%s" % _f

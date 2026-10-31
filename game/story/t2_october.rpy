@@ -24,6 +24,11 @@ label t2_october:
 
     $ start_month(2)
 
+    ## 夏 M1（运动会报名）——脚本过场；内容待文案按夏线定稿
+    scene bg classroom_day
+    "运动会报名表传下来。八百米那栏，夏幸悠替我写了名字。"
+    $ mark_milestone("xia", 1)
+
     ## 主拍 · 旧琴房（他把迎新晚会筹备、撞见她弹琴、晚会放录音伴奏并成一场）
     ## 选项由脚本给，AI 只写这一拍的台词——走向不能交给模型。
     scene bg art_backstage
