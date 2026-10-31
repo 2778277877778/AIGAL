@@ -28,8 +28,6 @@ function Find-Sdk {
     if ($env:RENPY_SDK) { $candidates += $env:RENPY_SDK }
     $candidates += (Join-Path (Split-Path $repo -Parent) 'tools\renpy-8.5.3-sdk')
     $candidates += (Join-Path (Split-Path $repo -Parent) 'renpy-8.5.3-sdk')
-    $candidates += 'C:\renpy-8.5.3-sdk'
-    $candidates += 'D:\renpy-8.5.3-sdk'
     $candidates += (Join-Path $env:LOCALAPPDATA 'renpy-8.5.3-sdk')
 
     foreach ($c in $candidates) {

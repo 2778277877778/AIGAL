@@ -15,6 +15,8 @@ init -100 python in gui:
 ##   1. 删掉 game/gui/ 下的 png
 ##   2. 临时打开下面这段，跑一次 lint
 ##   3. 关回去，再跑 tools/mkui.py 恢复手绘素材
+## 警告：这段只能在本地临时打开。它会把 SDK 的 launcher/game 插进 sys.path 再
+## 执行 GUI 生成，打开状态下提交或打包，产物就会依赖游戏目录之外的第三方代码。
 ##
 # init 100 python in gui:
 #
