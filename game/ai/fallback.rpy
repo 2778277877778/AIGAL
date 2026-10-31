@@ -456,18 +456,22 @@ init -4 python in aig:
         },
         "t2_track": {
             "lines": [
-                {"speaker": "nar", "text": "报名表压在体育组的窗台上，跑道上的白线刚刷过。"},
-                {"speaker": "xia", "text": "喂，八百米，缺一个。"},
-                {"speaker": "nar", "text": "她把他的学号写上去，笔没停。"},
+                {"speaker": "nar", "text": "报名表压在体育组的窗台上。跑道上的白线刚刷过，站在上面有点粘鞋。"},
+                {"speaker": "xia", "text": "八百米还缺一个。"},
+                {"speaker": "mc", "text": "我、我跑得慢。"},
+                {"speaker": "xia", "text": "跑得慢也能跑。学号多少。"},
+                {"speaker": "nar", "text": "她把他的学号写上去，笔没停。写完抬头看了他一眼，像在核对。"},
             ],
             "choices": [],
             "mood": "hot",
         },
         "t4_borrow": {
             "lines": [
-                {"speaker": "nar", "text": "值日表贴歪了。她的橡皮上印着学校的名字。"},
-                {"speaker": "x", "text": "……你有橡皮吗。"},
-                {"speaker": "mc", "text": "有、有。给你。"},
+                {"speaker": "nar", "text": "图书馆的自习区只剩两张空桌。那本书的复本只有一本，插在最里面。"},
+                {"speaker": "nar", "text": "两人的手同时落在书脊上。她先收回去了。"},
+                {"speaker": "x", "text": "……你先。"},
+                {"speaker": "mc", "text": "我、我不急。你看。"},
+                {"speaker": "nar", "text": "她没走，站在桌边把书翻到目录，翻了两页才坐下。"},
             ],
             "choices": [],
             "mood": "plain",
