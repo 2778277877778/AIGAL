@@ -71,6 +71,8 @@ label free_actions:
     if ap > 0:
         "（这个月没地方可去了。）"
     else:
+        ## 每月结算：收掉已结束的任务，只留最近 20 条给诊断页
+        $ aig.clear_jobs()
         ## 最后一点 AP 用掉的这一刻，正好是下个月第一拍预取的触发点。
         ## T3 起的拍还没登记时 prefetch_first 会返回 0，不会报错；登记后自动生效。
         $ aig.prefetch_first(turn + 1)

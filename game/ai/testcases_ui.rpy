@@ -159,6 +159,8 @@ testcase debug_table:
     $ _keys = [k for k, v in _rows]
     $ _aig_test("缓存 key 前缀" in _keys, "诊断表缺缓存前缀")
     $ _aig_test("提示词段落" in _keys, "诊断表缺提示词统计")
+    $ _aig_test("延迟 P50 / P95" in _keys, "诊断表缺延迟分位")
+    $ _aig_test("超时率 / 失败率" in _keys, "诊断表缺超时率")
     $ _pfx = dict(_rows)["缓存 key 前缀"]
     $ _aig_test("|" in _pfx, "缓存前缀不像 cache.key 的前缀：%r" % (_pfx,))
     $ _aig_test(aig.last_line() != "", "last_line 给了空串")

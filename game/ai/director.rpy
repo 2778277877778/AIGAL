@@ -72,10 +72,10 @@ init -1 python in aig:
             "actions": tuple(renpy.store.ACTIONS.keys()),
         }
 
-    def _dispatch(messages, fake=None):
+    def _dispatch(messages, fake=None, tag="chat"):
         """发一次请求，返回 job id。fake 模式走假 provider（测试/演示用）。"""
         if fake:
-            return start_fake(fake, delay=0.05, tag="fake")
+            return start_fake(fake, delay=0.05, tag=tag)
         c = cfg()
         body = {
             "model": c.get("model"),
@@ -90,7 +90,7 @@ init -1 python in aig:
             "Authorization": "Bearer " + key_effective(),
             "Content-Type": "application/json",
         }
-        return start_http(url, headers, body, tag="chat")
+        return start_http(url, headers, body, tag=tag)
 
     def _messages(beat_id, turn, ending, extra="", seed=0):
         st = _state()
@@ -303,10 +303,28 @@ init -1 python in aig:
         if k in PENDING:
             return 0                        # 已经在飞
 
-        jid = _dispatch(_messages(beat_id, b["turn"], b.get("scope") == "ending", extra, seed), fake)
+        jid = _dispatch(_messages(beat_id, b["turn"], b.get("scope") == "ending", extra, seed), fake, tag="prefetch")
         if jid:
             PENDING[k] = {"jid": jid, "beat": beat_id, "choice_path": choice_path}
         return jid
+
+    def menu_items(beat_id, choice_path, given):
+        """菜单项：先用 AI 给的；AI 没给（契约收紧后它只写台词）就退回该拍模板里的选项。
+
+        选项文案和 action_key 都必须是脚本这边的：模型没机会造新 key，
+        玩家看到的每一句选项也都有出处。
+        """
+        allowed = choices_for(beat_id)
+
+        def ok(c):
+            return (not allowed) or (c.get("action_key") in allowed)
+
+        items = [(c["text"], c["action_key"]) for c in (given or []) if ok(c)]
+        if items:
+            return items
+        fb = template(beat_id, choice_path).get("choices") or []
+        items = [(c["text"], c["action_key"]) for c in fb if ok(c)]
+        return items or [("（继续）", "")]
 
     def pending_count():
         return len(PENDING)
@@ -404,7 +422,7 @@ label ai_menu(beat_id, choice_path="", extra=""):
     $ ai_say(_ai_d["lines"])
     $ ai_apply_flags(_ai_d["flags"], _ai_d["ctx"])
     ## 兜底那一项必须给可点的值：display_menu 里 value=None 是标题，不是选项。
-    $ _ai_items = [(c["text"], c["action_key"]) for c in _ai_d["choices"]] or [("（继续）", "")]
+    $ _ai_items = aig.menu_items(beat_id, choice_path, _ai_d["choices"])
     $ _ai_pick = renpy.display_menu(_ai_items)
     return _ai_pick
 

@@ -497,6 +497,21 @@ init -2 python in aig:
             ("当前回合 / 进度", "第 %d 回合" % getattr(store, "turn", 0)),
         ]
 
+        ## 延迟三项：P50 / P95 / 超时率。provider 按会话收最近 50 次，
+        ## 区分「模型慢 / 网络慢 / 代码慢」就看这三个数，不看平均值。
+        try:
+            lat = latency_stats()
+        except Exception:
+            lat = None
+        if lat and lat.get("n"):
+            rows.append(("延迟 P50 / P95", "%.2fs / %.2fs（最近 %d 次，最慢 %.2fs）"
+                         % (lat["p50"], lat["p95"], lat["n"], lat["max"])))
+            rows.append(("超时率 / 失败率", "%.0f%% / %.0f%%（共 %d 次请求）"
+                         % (lat["timeout_rate"] * 100.0, lat["fail_rate"] * 100.0,
+                            lat["requests"])))
+        else:
+            rows.append(("延迟 P50 / P95", "还没有采样（这一局还没发过请求）"))
+
         ls = last_summary()
         if ls["ok"]:
             rows.append(("最近返回", "%d 行 · 最长 %d 字 · mood=%s"

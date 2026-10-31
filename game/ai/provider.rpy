@@ -27,6 +27,15 @@ init -6 python in aig:
     ## 连续失败几次转离线（本会话有效，不落盘）。
     FAIL_LIMIT = 3
 
+    ## 同时在飞的请求上限。预取是锦上添花，不该跟玩家正在等的请求抢资源：
+    ## 满了就放弃预取；现场请求最多等 SLOT_WAIT 秒一个槽位。
+    MAX_INFLIGHT = 2
+    SLOT_WAIT = 3.0
+
+    ## 诊断用：最近 N 次耗时（P50/P95 就从这里算），任务表保留最近 N 条。
+    LAT_KEEP = 50
+    JOB_KEEP = 20
+
     _LOCK = threading.RLock()
     _JOBS = {}
     _NEXT = [0]
@@ -40,8 +49,12 @@ init -6 python in aig:
         "offline": False,
         "requests": 0,
         "fails": 0,
+        "timeouts": 0,
         "fake": None,
     }
+
+    ## 最近 LAT_KEEP 次耗时（秒）。只记真实发生在飞请求的结束时刻。
+    _LAT = []
 
     FAKE_MODES = (
         "ok", "narrative", "badjson", "empty_choices", "long_text",
@@ -80,6 +93,55 @@ init -6 python in aig:
         with _LOCK:
             return _JOBS.get(jid)
 
+    def _inflight():
+        with _LOCK:
+            return sum(1 for j in _JOBS.values() if j.state == "running")
+
+    def _wait_slot(seconds=SLOT_WAIT):
+        """主线程等一个并发槽位。等不到返回 False（调用方按「没发出去」处理）。"""
+        end = time.time() + seconds
+        while _inflight() >= MAX_INFLIGHT:
+            if time.time() >= end:
+                return False
+            try:
+                renpy.pause(0.02)
+            except Exception:
+                time.sleep(0.02)
+        return True
+
+    def _record_latency(sec):
+        with _LOCK:
+            _LAT.append(float(sec))
+            while len(_LAT) > LAT_KEEP:
+                del _LAT[0]
+
+    def reset_latency():
+        """清空耗时样本（诊断页「重置」和测试用）。"""
+        with _LOCK:
+            del _LAT[:]
+
+    def latency_stats():
+        """P50 / P95 / 超时率。区分「模型慢 / 网络慢 / 代码慢」只看这三个数。"""
+        with _LOCK:
+            xs = sorted(_LAT)
+            reqs = _STATE["requests"]
+            tos = _STATE["timeouts"]
+            fails = _STATE["fails"]
+        if not xs:
+            return {"n": 0, "p50": 0.0, "p95": 0.0, "max": 0.0,
+                    "timeout_rate": 0.0, "fail_rate": 0.0, "requests": reqs}
+        n = len(xs)
+
+        def pick(q):
+            return xs[min(n - 1, int(q * (n - 1) + 0.5))]
+
+        return {
+            "n": n, "p50": pick(0.5), "p95": pick(0.95), "max": xs[-1],
+            "timeout_rate": (float(tos) / reqs) if reqs else 0.0,
+            "fail_rate": (float(fails) / reqs) if reqs else 0.0,
+            "requests": reqs,
+        }
+
     def _finish(job, state, text=None, error=None):
         """线程里调用。只碰 Job 自己的字段，不碰 renpy。"""
         with _LOCK:
@@ -101,6 +163,7 @@ init -6 python in aig:
                     _STATE["offline"] = True
             elif state == "done":
                 _STATE["consec_fail"] = 0
+            _record_latency((job.ended or time.time()) - job.started)
         # 走到这里不用 renpy.restart_interaction：invoke_in_thread 在线程返回时会自己重启交互。
 
     def _abandon(job, state="timeout"):
@@ -111,6 +174,8 @@ init -6 python in aig:
             job.state = state
             job.ended = time.time()
             if state == "timeout":
+                _STATE["timeouts"] += 1
+                _record_latency((job.ended or time.time()) - job.started)
                 _STATE["fails"] += 1
                 _STATE["consec_fail"] += 1
                 if _STATE["consec_fail"] >= FAIL_LIMIT:
@@ -164,9 +229,17 @@ init -6 python in aig:
 
         method 默认 POST（chat/completions 的口径）。探针打 /v1/models 这种只吃 GET
         的端点时要显式传 "GET"，否则一类 404 会被误判成「网络不通」。
+
+        并发上限：预取满了直接放弃（返回 0，调用方本来就不等它）；
+        现场请求最多等 SLOT_WAIT 秒一个槽位，等不到也返回 0。
         """
         if not allowed():
             return 0
+        if _inflight() >= MAX_INFLIGHT:
+            if tag == "prefetch":
+                return 0
+            if not _wait_slot():
+                return 0
         job = _new_job(tag)
 
         def run(j):
@@ -346,14 +419,21 @@ init -6 python in aig:
         for job in jobs:
             _abandon(job, "cancelled")
 
-    def clear_jobs():
-        """把表清空（只清已完成/已放弃的）。测试和 after-load 用。"""
+    def clear_jobs(keep=JOB_KEEP):
+        """收掉已结束的任务，只留最近 keep 条给诊断页看。
+
+        不传参就是诊断用的默认值（最近 20 条）。传 keep=0 才是真清空，测试用。
+        """
         with _LOCK:
-            for jid in [j.id for j in _JOBS.values() if j.state != "running"]:
-                del _JOBS[jid]
+            done = [j for j in _JOBS.values() if j.state != "running"]
+            done.sort(key=lambda j: j.ended or 0.0)
+            cut = len(done) - max(0, int(keep))
+            for j in done[:max(0, cut)]:
+                del _JOBS[j.id]
 
 
 ## 退游戏时把在飞的都掐掉，不留 daemon 线程做请求。
 ## 放在 -1：保证 aig 命名空间里的函数都已经定义完。
 init -1 python:
     config.quit_callbacks.append(aig.cancel_all)
+    config.quit_callbacks.append(aig.clear_jobs)
