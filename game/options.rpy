@@ -1,4 +1,4 @@
-## This file contains options that can be changed to customize your
+﻿## This file contains options that can be changed to customize your
 ## game.
 ##
 ## Lines beginning with two '#' marks are comments, and you shouldn't
@@ -34,7 +34,7 @@ define config.version = "0.0.1-demo"
 define gui.about = _p("""
 校园视觉小说 + 轻生活模拟。Ren'Py 8.5.3 工程骨架，剧本内容待定。
 
-设定见仓库文档：游戏设定总表_v2.md / 回合事件表_v2.md / 剧本大纲_高一学年_v3.md。
+设定见仓库文档：旧 8 回合设定表（git 历史） / 回合事件表_v2.md / 旧 8 回合大纲（git 历史）。
 """)
 
 

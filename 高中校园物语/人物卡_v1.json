@@ -114,7 +114,7 @@
         "正文不许写他的外貌",
         "名字来自玩家输入，替换前必须 sanitize，含 [ 或 { 会二次注入"
       ],
-      "source": ["game/story/characters.rpy:8", "高中校园物语/剧本大纲_高一学年_v3.md §1.1 §7", "game/story/t1_september.rpy:38-163"]
+      "source": ["game/story/characters.rpy:8", "旧 8 回合大纲（git 历史） §1.1 §7", "game/story/t1_september.rpy:38-163"]
     },
     "zm": {
       "name": "周墨",
@@ -250,7 +250,7 @@
         "不许 AI 替她决定 Flag",
         "正文不许写外貌"
       ],
-      "source": ["game/story/characters.rpy:9", "高中校园物语/剧本大纲_高一学年_v3.md §3", "高中校园物语/游戏设定总表_v2.md 附录 A", "game/story/t1_september.rpy:70-164"]
+      "source": ["game/story/characters.rpy:9", "旧 8 回合大纲（git 历史） §3", "旧 8 回合设定表（git 历史） 附录 A", "game/story/t1_september.rpy:70-164"]
     },
     "zzb": {
       "name": "周子博",
@@ -314,7 +314,7 @@
         "不许他知道周墨的秘密，T2 他只是差点说漏",
         "不许给他煽情独白"
       ],
-      "source": ["game/story/characters.rpy:10", "game/story/t1_september.rpy:36-136", "高中校园物语/剧本大纲_高一学年_v3.md §3 T6"]
+      "source": ["game/story/characters.rpy:10", "game/story/t1_september.rpy:36-136", "旧 8 回合大纲（git 历史） §3 T6"]
     },
     "zeng": {
       "name": "曾老师",
@@ -366,7 +366,7 @@
       },
       "pending": ["是否兼音乐社指导（暂定不是：他递申请，但不教琴）"],
       "forbidden": ["不许说教长篇", "不许煽情", "不许抢主角的戏，他只递台阶不解决问题", "正文不许写外貌"],
-      "source": ["game/story/characters.rpy:11", "game/story/t1_september.rpy:51-153", "高中校园物语/剧本大纲_高一学年_v3.md §3 T5"]
+      "source": ["game/story/characters.rpy:11", "game/story/t1_september.rpy:51-153", "旧 8 回合大纲（git 历史） §3 T5"]
     },
     "stu_a": {
       "name": "同学甲",
@@ -458,7 +458,7 @@
         "不许写成「女汉子」式夸张脸谱：她的直是态度，不是嗓门大",
         "不许她有暗恋"
       ],
-      "source": ["高中校园物语/游戏设定总表_v2.md §三", "高中校园物语/回合事件表_v3.md §4（其余为 🆕）"]
+      "source": ["旧 8 回合设定表（git 历史） §三", "旧 8 回合事件表（git 历史） §4（其余为 🆕）"]
     },
     "kong": {
       "name": "孔子帆",
@@ -503,7 +503,7 @@
         "不许给他感情线",
         "不许让他替周墨公开秘密"
       ],
-      "source": ["高中校园物语/游戏设定总表_v2.md §三", "高中校园物语/剧本大纲_高一学年_v3.md §3 T4（其余为 🆕）"]
+      "source": ["旧 8 回合设定表（git 历史） §三", "旧 8 回合大纲（git 历史） §3 T4（其余为 🆕）"]
     },
     "x": {
       "name": "温以宁",
@@ -521,7 +521,7 @@
       "scene_reaction": {"classroom": "斜后方，接话尾"},
       "pending": ["戏份", "性格", "是否开线"],
       "forbidden": ["不做感情线", "不推进 Flag", "不给单独场景", "AI 不许给她编性格或身世"],
-      "source": ["高中校园物语/游戏设定总表_v2.md §三 §七 第 4 条"]
+      "source": ["旧 8 回合设定表（git 历史） §三 §七 第 4 条"]
     },
     "zm_dad": {
       "name": "周父",
@@ -541,7 +541,7 @@
       "habits": ["只追问分数和下指令", "冷淡"],
       "pending": ["科室（暂不细化）"],
       "forbidden": ["不许破口大骂", "不许动手", "不许写成反派：他的压迫感来自「合理」"],
-      "source": ["高中校园物语/剧本大纲_高一学年_v3.md §1 §3 T2 T4"]
+      "source": ["旧 8 回合大纲（git 历史） §1 §3 T2 T4"]
     },
     "zm_mom": {
       "name": "周母",
@@ -560,7 +560,7 @@
       "habits": ["话少，只在他背后或旁边说", "两句话都是替女儿说话，但不正面冲突"],
       "pending": [],
       "forbidden": ["不许和父亲正面争吵", "不许写成完美母亲：她当年也没拦住，这一点必须留着"],
-      "source": ["高中校园物语/剧本大纲_高一学年_v3.md §1 §3 T5 T8"]
+      "source": ["旧 8 回合大纲（git 历史） §1 §3 T5 T8"]
     }
   },
   "scene_reactions": {
