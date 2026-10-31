@@ -55,6 +55,10 @@ init -1 python:
         pool = {}
         for k in (globals().get("EVENT_POOL") or {}):
             pool[str(k)] = True
+        ## 结局拍由 endings.rpy 的 ENDING_BEAT 表派发：ending_gate 里写的是
+        ## ai_play(ENDING_BEAT[...])，字面量正则扫不到，但表里的 id 就是真实调用点。
+        for _bid in (globals().get("ENDING_BEAT") or {}).values():
+            refs.add(str(_bid))
         return refs, has_dyn, files, pool
 
 
@@ -150,23 +154,83 @@ testcase div_shape_and_wording:
 ## 4. 结局收敛：只可能落在已声明的那几种里，不存在第 6 种
 testcase div_ending_space:
     python:
-        _declared = {"true", "end_a", "end_b", "end_c"}
-        _saved = (store.study, store.stress, store.flags)
+        ## 扫的是生产路径 `ending_id()` 的 route 矩阵，不是已标成历史的
+        ## `true_ending()` / `end_variant()` —— 测一个生产不走的函数，绿得再漂亮也没意义。
+        _saved = (store.exam_score, store.stress, store.route, store.route_done,
+                  store.rel_zm, store.flags)
+        _routes = ("zm", "xia", "x", "none")
+
+        def _true_state():
+            store.exam_score = 90
+            store.stress = 20
+            store.route = "zm"
+            store.route_done = True
+            store.rel_zm = 80
+            _fl = dict(store.flags)
+            for _f in MILESTONE_FLAGS["zm"]:
+                _fl[_f] = True
+            store.flags = _fl
+
         try:
-            _seen = set()
-            for _study, _stress, _all_flags in (
-                (80, 10, True), (80, 90, True), (30, 10, False), (30, 90, False),
-            ):
-                store.study = _study
-                store.stress = _stress
-                store.flags = dict((f, True) for f in TRUE_FLAGS) if _all_flags else {}
-                ## 结局 id 一律小写：endings.rpy 记的是 "end_" + _end_var.lower()，
-                ## replay.rpy 也是小写。end_variant() 本身返回大写字母，别直接拼。
-                _seen.add("true" if true_ending() else "end_" + end_variant().lower())
-            _div_test(_seen <= _declared, "出现了声明外的结局：%r" % (_seen - _declared,))
-            _div_test("true" in _seen, "TRUE 结局在四种组合里一次都没出现")
+            ## ① 旧存档：数值和 Flag 再好，也只能走 none_end。
+            ##    这是那个「周墨线只差一个 Flag 就读到温以宁结局」的修复点。
+            _true_state()
+            store.route_done = False
+            _div_test(ending_id() == "none_end",
+                      "旧存档（未锁线）应走 none_end，实际 %r" % (ending_id(),))
+
+            _true_state()
+            _div_test(ending_id() == "true",
+                      "五项条件全满足时应为 true，实际 %r" % (ending_id(),))
+
+            ## ② 四条线各自的 END：互不相同、都在声明集合里
+            _seen = {}
+            for _r in _routes:
+                store.exam_score = 60          # 不到 85，TRUE 不成立
+                store.route = _r
+                store.route_done = True
+                _seen[_r] = ending_id()
+            _got = []
+            _want = []
+            for _r in _routes:
+                _got.append(_seen[_r])
+                _want.append(ENDING_BY_ROUTE[_r])
+            _div_test(_got == _want, "四条线的结局不对：%r（期望 %r）" % (_got, _want))
+            _div_test(len(set(_got)) == 4, "四条线里有重复结局：%r" % (_got,))
+            for _v in _got:
+                _div_test(_v in ENDING_IDS, "产出声明外的结局：%r" % (_v,))
+
+            ## ③ TRUE 只有一个入口：route == zm 且五项全中。打掉任意一项都退回 zm_end。
+            _true_state()
+            store.exam_score = 84
+            _div_test(ending_id() == "zm_end", "高考差 1 分应退成 zm_end，实际 %r" % (ending_id(),))
+            _true_state()
+            store.stress = 61
+            _div_test(ending_id() == "zm_end", "压力超 1 点应退成 zm_end，实际 %r" % (ending_id(),))
+            _true_state()
+            store.rel_zm = 59
+            _div_test(ending_id() == "zm_end", "rel_zm 差 1 应退成 zm_end，实际 %r" % (ending_id(),))
+            _true_state()
+            _fl = dict(store.flags)
+            for _f in MILESTONE_FLAGS["zm"]:
+                _fl.pop(_f, None)
+                break
+            store.flags = _fl
+            _div_test(ending_id() == "zm_end", "少一个里程碑 Flag 应退成 zm_end，实际 %r" % (ending_id(),))
+            ## 条件再好，线不对也不出周墨的 TRUE
+            _true_state()
+            store.route = "xia"
+            _div_test(ending_id() == "xia_end", "route=xia 时不该出 TRUE，实际 %r" % (ending_id(),))
+
+            ## ④ 未声明的 route 不许抛，落 none_end
+            store.exam_score = 60
+            store.route = "bogus"
+            store.route_done = True
+            _div_test(ending_id() == "none_end",
+                      "未声明的 route 应落 none_end，实际 %r" % (ending_id(),))
         finally:
-            store.study, store.stress, store.flags = _saved
+            store.exam_score, store.stress, store.route = _saved[0], _saved[1], _saved[2]
+            store.route_done, store.rel_zm, store.flags = _saved[3], _saved[4], _saved[5]
 
 
 ## 5. 骨架不变（第 1 条）：同一条选择轨迹回放两次，beat 序列 / Flag 集合 / 结局逐字一致
@@ -177,7 +241,7 @@ testcase div_replay_stable:
         _d2 = replay_trace(_picks)
         _div_test(_d1 == _d2, "同一轨迹回放两次不一致：\n%r\n%r" % (_d1, _d2))
         _div_test(bool(_d1[0]), "回放出来的 beat 序列是空的")
-        _div_test(_d1[2] in ("true", "end_a", "end_b", "end_c"),
+        _div_test(_d1[2] in ENDING_IDS,
                   "回放出了声明外的结局：%r" % (_d1[2],))
 
         ## 每个 beat 都必须在 beat 表里登记过，否则剧本走的是没登记的名字

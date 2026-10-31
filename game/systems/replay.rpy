@@ -10,10 +10,15 @@
 ## 缺省取 story 里脚本书写的那一支，和脚本的默认值对齐。
 ##
 ## study / stress 是结局判定要用的终局数值（自由行动的净效果由调用方给），
-## 默认 30 / 10 = 完全不做自由行动。
+## 默认 30 / 10 = 完全不做自由行动。route / rel_zm / flags 同理，由调用方给：
+## 回放模型不重建 T9+ 的里程碑过程，要判 TRUE 就把那 10 个 Flag 用 flags 传进来。
 ##
-## ⚠ 这张表是「T1–T8 八回合骨架」的过渡模型。36 格表驱动落地后删掉本文件，
-##   改成从月表直接算；在那之前它是唯一一份可以被测试直接调用的纯回放。
+## 结局 id 与 endings.rpy 走**同一套表**（ENDING_BY_ROUTE / ENDING_BEAT），
+## 这里不另存一份「线 → 正文」的映射，也不自己发明结局名。
+##
+## ⚠ 这张表是「T1–T8 八回合骨架」的过渡模型：只回放 T1–T8 的拍，不模拟事件槽、
+##   自由行动和 T9+ 的里程碑。36 格表驱动落地后删掉本文件，改成从月表直接算；
+##   在那之前它是唯一一份可以被测试直接调用的纯回放——**简化模型，不是第二条真相**。
 ################################################################################
 
 init -1 python:
@@ -58,8 +63,13 @@ init -1 python:
     }
 
 
-    def replay_trace(picks=None, study=30, stress=10):
-        """选择序列 → (beat 序列, Flag 集合, 结局 id)。纯函数，可重复调用、结果逐字相同。"""
+    def replay_trace(picks=None, study=30, stress=10, route="none", rel_zm=0, flags=None):
+        """选择序列 → (beat 序列, Flag 集合, 结局 id)。纯函数，可重复调用、结果逐字相同。
+
+        route / rel_zm / flags 是终局输入：不传就是「没锁线、里程一个没中」，
+        结局落在 none_end。判 TRUE 需要的 10 个周墨里程碑 Flag 由 flags 传入
+        （回放模型只重建 T1–T8 的剧情 Flag，不重建 T9+ 的里程碑过程）。
+        """
         chosen = dict(REPLAY_DEFAULTS)
         chosen.update(picks or {})
 
@@ -68,30 +78,31 @@ init -1 python:
             raise Exception("回放里有未知的选择点：%s" % ", ".join(sorted(unknown)))
 
         beats = []
-        flags = list(REPLAY_BASE_FLAGS)
+        story_flags = list(REPLAY_BASE_FLAGS)
         for turn, seq in REPLAY_TURNS:
             beats.extend(seq)
-            flags.extend(REPLAY_FLAGS.get(turn, ()))
+            story_flags.extend(REPLAY_FLAGS.get(turn, ()))
 
         if chosen["t8_subject"] == "support":
-            flags.append("subject_support")
+            story_flags.append("subject_support")
         if chosen["t8_form"] == "same":
-            flags.append("same_subject")
+            story_flags.append("same_subject")
         if chosen["confession"] == "yes":
-            flags.append("confession")
+            story_flags.append("confession")
 
-        ## 判定只读 flag 集合和终局数值，和 stats.rpy 的 true_ending() / end_variant() 同构。
-        if study >= END_STUDY and stress <= END_STRESS and all(f in flags for f in TRUE_FLAGS):
-            beats.append("t8_true")
+        ## 结局判定与 endings.rpy 同口径：route 决定走哪条线，TRUE 只可能出在周墨线。
+        ## 结局 id 不在这里拼字符串，全部取自 ENDING_BY_ROUTE / ENDING_BEAT。
+        ## _flags 由「回放重建的剧情 Flag」+「调用方传入的终局 Flag」合起来算；
+        ## 注意别把参数 flags 覆盖掉（上一版就是在这里把入参 shadow 掉了）。
+        _flags = set(story_flags) | set(flags or ())
+        if (route == "zm"
+                and study >= GAOKAO_LINE
+                and stress <= 60
+                and rel_zm >= 60
+                and all(f in _flags for f in MILESTONE_FLAGS["zm"])):
             ending = "true"
         else:
-            if "subject_support" not in flags:
-                variant = "a"
-            elif "same_subject" not in flags:
-                variant = "b"
-            else:
-                variant = "c"
-            beats.append("t8_end_" + variant)
-            ending = "end_" + variant
+            ending = ENDING_BY_ROUTE.get(route, "none_end")
 
-        return (tuple(beats), tuple(sorted(set(flags))), ending)
+        beats.append(ENDING_BEAT[ending])
+        return (tuple(beats), tuple(sorted(set(story_flags))), ending)

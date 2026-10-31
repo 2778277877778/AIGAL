@@ -313,6 +313,8 @@ testcase trace_logic:
 
 ## 只读回放（systems/replay.rpy）：给 Chief 五条断言里的 1 / 3 / 5 共用。
 ## 纯函数，不碰 store、不碰 provider，所以有 key / 没 key 的结果必然同构。
+## 结局 id 与 endings.rpy 同一套表：默认（没锁线）落 none_end，四条 route 各走各的，
+## TRUE 需要路线 + 高考 + 压力 + rel_zm + 10 个周墨里程碑 Flag。
 testcase replay_logic:
     pause .2
 
@@ -321,14 +323,41 @@ testcase replay_logic:
         _a = replay_trace(_p, study=80, stress=60)
         _b = replay_trace(_p, study=80, stress=60)
         assert _a == _b, "同一条选择轨迹两次回放不一致"
-        assert _a[2] == "true", "TRUE 条件应成立：%r" % (_a,)
         for _beat in _a[0]:
             assert _beat in AI_BEATS, "回放里有未登记的拍：%s" % _beat
         assert len(_a[0]) == len(set(_a[0])), "回放里 beat 重复"
 
-        assert replay_trace({}, study=30, stress=10)[2] == "end_a", "缺 subject_support 应走 END A"
-        assert replay_trace({"t8_subject": "support"}, 30, 10)[2] == "end_b", "缺 same_subject 应走 END B"
-        assert replay_trace({"t8_subject": "support", "t8_form": "same"}, 60, 10)[2] == "end_c", "栽在数值应走 END C"
+        ## 旧结构的 end_a/b/c 已经不存在了：不传 route 就是没锁线，落 none_end
+        assert replay_trace({})[2] == "none_end", "默认应是 none_end，实际 %r" % (replay_trace({})[2],)
+
+        ## 四条 route 各走各的，且 id 必须落在 ENDING_IDS 里
+        for _r, _want in (("zm", "zm_end"), ("xia", "xia_end"),
+                          ("x", "x_end"), ("none", "none_end")):
+            _eid = replay_trace({}, route=_r)[2]
+            assert _eid == _want, "route=%s 应走 %s，实际 %r" % (_r, _want, _eid)
+            assert _eid in ENDING_IDS, "回放出了声明外的结局：%r" % (_eid,)
+
+        ## 未知 route 是安全网：当 none_end，不抛
+        assert replay_trace({}, route="nobody")[2] == "none_end", "未知 route 应落 none_end"
+        assert set(ENDING_BEAT) == set(ENDING_IDS), "ENDING_BEAT 与 ENDING_IDS 不是同一组 id"
+
+        ## TRUE：五条缺一不可，每个失败都该退成 zm_end
+        _ms = {f: True for f in MILESTONE_FLAGS["zm"]}
+        _t = replay_trace({}, study=85, stress=60, route="zm", rel_zm=60, flags=_ms)
+        assert _t[2] == "true", "五条全中应为 TRUE：%r" % (_t,)
+        assert _t[0][-1] == ENDING_BEAT["true"], "TRUE 应播 %s，实际 %s" % (ENDING_BEAT["true"], _t[0][-1])
+        assert replay_trace({}, study=84, stress=60, route="zm", rel_zm=60, flags=_ms)[2] == "zm_end", \
+            "高考 84 不该出 TRUE"
+        assert replay_trace({}, study=85, stress=61, route="zm", rel_zm=60, flags=_ms)[2] == "zm_end", \
+            "压力 61 不该出 TRUE"
+        assert replay_trace({}, study=85, stress=60, route="zm", rel_zm=59, flags=_ms)[2] == "zm_end", \
+            "rel_zm 59 不该出 TRUE"
+        _ms2 = dict(_ms)
+        del _ms2[MILESTONE_FLAGS["zm"][-1]]
+        assert replay_trace({}, study=85, stress=60, route="zm", rel_zm=60, flags=_ms2)[2] == "zm_end", \
+            "缺一个里程碑 Flag 不该出 TRUE"
+        assert replay_trace({}, study=99, stress=0, route="xia", rel_zm=100, flags=_ms)[2] == "xia_end", \
+            "route=xia 时条件再好也不该出周墨的 TRUE"
 
         try:
             replay_trace({"t8_nope": "x"})

@@ -27,6 +27,15 @@ init -1 python:
     ## 已声明的结局集合（含 TRUE），供「每个 route 都有可达结局」的断言用。
     ENDING_IDS = ("true",) + tuple(ENDING_BY_ROUTE[_r] for _r in ("zm", "xia", "x", "none"))
 
+    ## 结局 id → 正文拍。ending_gate 和 replay.rpy 共用这一份，别在别处再写一张。
+    ENDING_BEAT = {
+        "true": "t8_true",
+        "zm_end": "t8_end_c",
+        "xia_end": "t8_end_b",
+        "x_end": "t8_end_a",
+        "none_end": "t36_end_other",
+    }
+
 
     def ending_id():
         """当前状态该走哪个结局 id；纯读 store，不写任何东西。
@@ -46,26 +55,23 @@ init -1 python:
 label ending_gate:
 
     $ _eid = ending_id()
+    $ trace_ending(_eid)
 
     if _eid == "true":
-        $ trace_ending("true")
-        call ai_play("t8_true", "confess" if has_flag("confession") else "silent")
+        ## TRUE 只有这一个是「同一拍、两种收法」：说了告白那句就多一段
+        call ai_play(ENDING_BEAT["true"], "confess" if has_flag("confession") else "silent")
         $ _ending_line = "TRUE 结局 · 最后一个音"
     elif _eid == "zm_end":
-        $ trace_ending("zm_end")
-        call ai_play("t8_end_c")
+        call ai_play(ENDING_BEAT["zm_end"])
         $ _ending_line = "END 结局 · 琴盖没开"
     elif _eid == "xia_end":
-        $ trace_ending("xia_end")
-        call ai_play("t8_end_b")
+        call ai_play(ENDING_BEAT["xia_end"])
         $ _ending_line = "END 结局 · 跑道尽头"
     elif _eid == "x_end":
-        $ trace_ending("x_end")
-        call ai_play("t8_end_a")
+        call ai_play(ENDING_BEAT["x_end"])
         $ _ending_line = "END 结局 · 没打开的门"
     else:
-        $ trace_ending("none_end")
-        call ai_play("t36_end_other")
+        call ai_play(ENDING_BEAT["none_end"])
         $ _ending_line = "END 结局 · 三年过去了"
 
     ## 结局卡只出标题：提示语不在这里重复（留作结局收集页的提要）。
