@@ -1,4 +1,4 @@
-﻿"""AIGAL · AI 输出契约（解析 / 清洗 / 校验）。
+"""AIGAL · AI 输出契约（解析 / 清洗 / 校验）。
 
 纯标准库，不 import renpy。这样能用系统 Python 直接跑
 `tools/selftest_schema.py`，不用起游戏窗口。
@@ -26,7 +26,7 @@ import re
 ## 换掉 schema/提示词任何一处都要进缓存 key，否则旧缓存会继续命中旧口吻。
 ## 2：长度口径收到 400/120（运行时预算 v1），旧的 900 字缓存在新预算下不可用。
 ## 3：单行 120 → 100（美工实测正文框 31 字/行、4 行封顶 124，120 只剩 4 字余量）。
-SCHEMA_VER = 3
+SCHEMA_VER = 4
 PROMPT_VER = "角色_v1.2"
 
 
@@ -256,7 +256,9 @@ def validate(raw, ctx):
     if raw_choices is None:
         raw_choices = []
     if not isinstance(raw_choices, list):
-        return _reject("choices_not_list", notes, raw_len)
+        ## 契约收紧后模型不再输出选项；万一吐了且形状不对，丢字段，不废整拍
+        notes.append("choices_not_list_dropped")
+        raw_choices = []
 
     choices = []
     seen = set()
@@ -287,8 +289,8 @@ def validate(raw, ctx):
         choices.append({"text": txt, "action_key": ak})
 
     if ctx.get("expect_choices") and not choices:
+        ## 选项由脚本的 BEAT_CHOICES 给，模型不再产出；缺选项只记一笔，不整拍拒
         notes.append("choices_missing")
-        return _reject("choices_missing", notes, raw_len)
 
     ## 6. flags：只认本拍白名单，只置位不撤销
     raw_flags = obj.get("flags")
@@ -298,7 +300,10 @@ def validate(raw, ctx):
         notes.append("flags_dict_form")
         raw_flags = raw_flags.get("set") or []
     if not isinstance(raw_flags, list):
-        return _reject("flags_not_list", notes, raw_len)
+        ## 同上：flags 已经不由 AI 产出，类型错只丢字段。删掉这条拒，
+        ## 就少一条「lines 全合法却被退模板」的失败路径。
+        notes.append("flags_not_list_dropped")
+        raw_flags = []
 
     flags = []
     for f in raw_flags:
