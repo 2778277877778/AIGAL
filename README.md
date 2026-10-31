@@ -28,9 +28,9 @@ Ren'Py 校园视觉小说，带日程数值，简体中文，13+，首版只做 
 
 ## 进度
 
-剧情：高一学年那一轮写完了，T1 到 T8，加 4 条结局正文分支（TRUE，加 END 的 A/B/C 三种变体）。T1 全手写，一次 AI 都不调；T2 往后走 director。关系变量层在 `game/systems/relations.rpy`，结局判定仍归 `stats.rpy`。下一步是照大纲扩到三年 36 格，T9 往后还没写。
+剧情：三条线通了，五个结局都能走到。结局按 route 分流（周墨 / 夏幸悠 / 温以宁 / 无路线，外加 TRUE），T22 锁线，查分走脚本，TRUE 的门槛是高考 ≥85、压力 ≤60、`rel_zm` ≥60、10 个 Flag。这一轮 T1–T8 是完整的，T1 全手写、一次 AI 都不调，T2 往后走 director。关系变量层在 `game/systems/relations.rpy`，结局判定仍归 `stats.rpy`。下一步照大纲铺 T9–T36。
 
-T9–T36 的 21 个拍 id 已经列进大纲 §1.2 的登记表（T34 高考、T35 查分、T36 复用现有四个结局）。拍细节只认大纲 §2.7 这一处编译源，§2.6 降成暂存区，只留 20 个 `e_*` 事件拍和还没拆成拍的里程碑参考。现在 82 个拍全登记、222 条细节进了 `prompts_data`。
+T9–T36 的拍 id 在大纲 §1.2 的登记表里（T34 高考、T35 查分、T36 结局）。拍细节只认大纲 §2.7 这一处编译源，§2.6 降成暂存区，只留 20 个 `e_*` 事件拍和还没拆成拍的里程碑参考。登记、模板、细节、speaker 表这四处缺一处就有一条空转，现在都由用例守着：`every_beat_has_speakers`、`div_detail_coverage`、`milestone_wiring`。
 
 事件池也接了：`game/systems/events.rpy` 管抽取（60% 闸门、年级与月窗口过滤、`requires` / `exclude`、同 tag 主线互斥、同局出过的权重 ×0.3），`game/story/event_slot.rpy` 在主线拍之后播，抽中才播并记进 `event_seen`。槽位只有 14 个，全在偶数月，所以事件窗口必须覆盖到其中一个，否则那条数据永远不会被抽到。
 
@@ -49,7 +49,7 @@ AI 那层也落地了，`game/ai/` 下这几个文件都在跑：
 
 校验的真身在 `game/python-packages/aigal/schema_core.py`，纯 Python，不依赖 Ren'Py，可以单独跑。设置页、生成中界面、截图回归已经做完；`tests/shots/` 是基准图，不进默认测试链。
 
-验收标准没变：`.\dev.ps1 lint` 0 错、`.\dev.ps1 test` 全绿、无 key 冷启动能通关、同一条轨迹重放数值和结局一致、注入文本不进界面也不进日志。现在 45 条用例全过，`check_cards` 和 lint 都在链里。
+验收标准没变：`.\dev.ps1 lint` 0 错、`.\dev.ps1 test` 全绿、无 key 冷启动能通关、同一条轨迹重放数值和结局一致、注入文本不进界面也不进日志。现在 50 条用例全过，`check_cards` 和 lint 都在链里。
 
 ## AI 输出
 
