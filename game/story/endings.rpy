@@ -44,33 +44,39 @@ label ending_gate:
         $ trace_ending("true")
         call ai_play("t8_true", "confess" if has_flag("confession") else "silent")
         $ _ending_line = "TRUE 结局 · 最后一个音"
-        $ _ending_note = "弹错的音，也还在曲子里。"
     elif _eid == "zm_end":
         $ trace_ending("zm_end")
         call ai_play("t8_end_c")
         $ _ending_line = "END 结局 · 琴盖没开"
-        $ _ending_note = "不是每首曲子都能弹完。"
     elif _eid == "xia_end":
         $ trace_ending("xia_end")
         call ai_play("t8_end_b")
         $ _ending_line = "END 结局 · 跑道尽头"
-        $ _ending_note = "她跑完了，那条跑道上没有他。"
     elif _eid == "x_end":
         $ trace_ending("x_end")
         call ai_play("t8_end_a")
         $ _ending_line = "END 结局 · 没打开的门"
-        $ _ending_note = "有些门，她没让他进去。"
     else:
         $ trace_ending("none_end")
         call ai_play("t36_end_other")
         $ _ending_line = "END 结局 · 三年过去了"
-        $ _ending_note = "谁都不偏，就谁都没有走进去。"
+
+    ## 结局卡只出标题：提示语不在这里重复（留作结局收集页的提要）。
+    ## 调试行只在开发模式出现，且不把内部 id / Flag 名摊给玩家。
+    $ _ending_route = {"true": "周墨线", "zm_end": "周墨线", "xia_end": "夏幸悠线", "x_end": "温以宁线", "none_end": "无路线"}[_eid]
+    call ending_card_display
+
+    return
+
+
+## 结局卡单独一个 label：剧情走它的同时，截图回归可以直接设好
+## `_ending_line` / `_ending_route` 再 call 它，不必真的玩到 T36。
+label ending_card_display:
 
     scene bg end_card
-    "{size=+6}[_ending_line]{/size}"
-    "[_ending_note]"
-    $ _flag_names = "、".join(sorted(store.flags.keys())) or "（无）"
-    "（本局：学习 [study] / 压力 [stress] / 关系 [_eid] / 已发生：[_flag_names]）"
-    "—— 完 ——"
+    "{color=#a9cbe4}{b}{size=+8}[_ending_line]{/size}{/b}{/color}"
+    if config.developer:
+        "（开发用：学习 [study] / 压力 [stress] / 路线 [_ending_route]）"
+    "{color=#8899a6}—— 完 ——{/color}"
 
     return

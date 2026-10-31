@@ -273,20 +273,14 @@ init -4 python in aig:
         ## 正文以大纲 §5 为准；这里是没有 key 时的版本，改动时两边一起改。
         "t8_true": {
             "lines": [
-                {"speaker": "nar", "text": "分班名单贴出来那天，两个名字在同一栏，中间隔了三个名字。"},
-                {"speaker": "nar", "text": "音乐社留了下来。礼堂后台那台琴正式归了社团，琴盖上贴了一张手写的牌子。"},
+                {"speaker": "nar", "text": "分班名单贴出来那天，两个名字在同一栏。音乐社留了下来，礼堂后台那台琴归了社团。"},
                 {"speaker": "nar", "text": "暑假第一天，他抱着修好的节拍器去学校。还是慢半拍。"},
-                {"speaker": "zm", "text": "能走。"},
                 {"speaker": "mc", "text": "周墨。我、我喜欢你。"},
-                {"speaker": "zm", "text": "……我知道了。"},
-                {"speaker": "mc", "text": "你、你知道什么了。"},
-                {"speaker": "zm", "text": "知道你要说什么。"},
-                {"speaker": "nar", "text": "她把节拍器拨到零。"},
+                {"speaker": "zm", "text": "……我知道你要说什么。"},
                 {"speaker": "zm", "text": "我也是。"},
-                {"speaker": "nar", "text": "弹错的音，也还在曲子里。"},
             ],
             "choices": [],
-            "mood": "warm",
+            "mood": "light",
         },
 
         "t8_true/silent": {
@@ -309,7 +303,6 @@ init -4 python in aig:
                 {"speaker": "nar", "text": "她的课桌清得很干净：抽屉是空的，桌面擦过，凳子推进去，腿正好对着桌沿。"},
                 {"speaker": "nar", "text": "走之前她没跟任何人告别。他把那本没署名的打印稿翻到最后一页，最后一行是空的，连句号都没有。"},
                 {"speaker": "nar", "text": "开学第二周，他收到一个没有寄件人的快递，寄件地址写着她老家的市名，电话号码少了一位。"},
-                {"speaker": "nar", "text": "有些门，她没让他进去。"},
             ],
             "choices": [],
             "mood": "cold",
@@ -321,7 +314,6 @@ init -4 python in aig:
                 {"speaker": "nar", "text": "他是在成绩栏前听别人说的。跑道上的塑胶被晒得发软，她第六圈经过的时候没看他。"},
                 {"speaker": "nar", "text": "毕业那天她穿了一次裙子，站了十分钟，又换回运动裤。她说不习惯，没人笑她。"},
                 {"speaker": "nar", "text": "她去了外省的学校。走之前把他借过的那件外套洗了还回来，叠得比原来整齐。"},
-                {"speaker": "nar", "text": "她跑完了。那条跑道上没有他。"},
             ],
             "choices": [],
             "mood": "hot",
@@ -333,7 +325,6 @@ init -4 python in aig:
                 {"speaker": "nar", "text": "旧琴房的钥匙挂在传达室的墙上，挂了两年，没人去拿。门上的锁坏过一次，修好之后又坏了。"},
                 {"speaker": "nar", "text": "暑假第一天，他抱着修好的节拍器在校门口等到中午。它还是慢半拍。"},
                 {"speaker": "nar", "text": "她没来。他把节拍器放在门卫室的窗台上，走了两步，又折回去，把指针拨到零。"},
-                {"speaker": "nar", "text": "不是每首曲子都能弹完。"},
             ],
             "choices": [],
             "mood": "cold",
@@ -850,10 +841,11 @@ init -4 python in aig:
         ## 自由段时间拍：现在剧本走 ai_free_scene/act/*，这两条只作测试与旧调用点的兜底。
         "t36_end_other": {
             "lines": [
-                {"speaker": "nar", "text": "三年过去。"},
-                {"speaker": "nar", "text": "分班名单贴出来那天，有人在楼下站了很久。"},
-                {"speaker": "nar", "text": "后来谁都去了自己该去的地方。"},
-                {"speaker": "nar", "text": "不是每首曲子都能弹完。"},
+                {"speaker": "nar", "text": "三年过去。教学楼后面的树长高了一截，走廊里换了新一届的学生。"},
+                {"speaker": "nar", "text": "分班名单贴出来那天，有人在楼下站了很久，从上往下看，又看回第一行。"},
+                {"speaker": "nar", "text": "三个人去了三个方向。群里偶尔有人发一句，没人接。"},
+                {"speaker": "nar", "text": "他后来还会路过艺术楼四楼。门锁着，里面没有声音。"},
+                {"speaker": "nar", "text": "毕业照上他们隔了两个人，谁也没往中间靠。"},
             ],
             "choices": [],
             "mood": "still",
